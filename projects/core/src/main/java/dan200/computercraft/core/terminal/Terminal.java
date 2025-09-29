@@ -165,7 +165,7 @@ public class Terminal {
         return palette;
     }
 
-    public synchronized void blit(ByteBuffer text, ByteBuffer textColour, ByteBuffer backgroundColour) {
+    public synchronized void blit(String text, ByteBuffer textColour, ByteBuffer backgroundColour) {
         var x = cursorX;
         var y = cursorY;
         if (y >= 0 && y < height) {

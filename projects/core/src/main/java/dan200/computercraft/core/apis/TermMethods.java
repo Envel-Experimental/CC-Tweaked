@@ -251,15 +251,19 @@ public abstract class TermMethods {
      * }</pre>
      */
     @LuaFunction
-    public final void blit(ByteBuffer text, ByteBuffer textColour, ByteBuffer backgroundColour) throws LuaException {
-        if (textColour.remaining() != text.remaining() || backgroundColour.remaining() != text.remaining()) {
+    public final void blit(Coerced<String> text, Coerced<ByteBuffer> textColour, Coerced<ByteBuffer> backgroundColour) throws LuaException {
+        var textValue = text.value();
+        var textColourValue = textColour.value();
+        var backgroundColourValue = backgroundColour.value();
+
+        if (textColourValue.remaining() != textValue.length() || backgroundColourValue.remaining() != textValue.length()) {
             throw new LuaException("Arguments must be the same length");
         }
 
         var terminal = getTerminal();
         synchronized (terminal) {
-            terminal.blit(text, textColour, backgroundColour);
-            terminal.setCursorPos(terminal.getCursorX() + text.remaining(), terminal.getCursorY());
+            terminal.blit(textValue, textColourValue, backgroundColourValue);
+            terminal.setCursorPos(terminal.getCursorX() + textValue.length(), terminal.getCursorY());
         }
     }
 

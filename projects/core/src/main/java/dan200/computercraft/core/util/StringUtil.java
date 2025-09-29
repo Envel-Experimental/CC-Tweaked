@@ -22,10 +22,8 @@ public final class StringUtil {
      * it cannot be mapped to CC's charset.
      */
     public static int unicodeToTerminal(int chr) {
-        // ASCII and latin1 map to themselves
-        if (chr == 0 || chr == '\t' || chr == '\n' || chr == '\r' || (chr >= ' ' && chr <= '~') || (chr >= 160 && chr <= 255)) {
-            return chr;
-        }
+        // Allow any printable character, as well as tab, line feed and carriage return.
+        if (!Character.isISOControl(chr) || chr == '\t' || chr == '\n' || chr == '\r') return chr;
 
         // Teletext block mosaics are *fairly* contiguous.
         if (chr >= 0x1FB00 && chr <= 0x1FB13) return chr + (129 - 0x1fb00);
@@ -77,19 +75,8 @@ public final class StringUtil {
      * @param chr The character to check.
      * @return Whether this character can be typed.
      */
-    public static boolean isTypableChar(byte chr) {
-        return isTypableChar(chr & 0xFF);
-    }
-
-    /**
-     * Check if a character is capable of being input and passed to a {@linkplain ComputerEvents#charTyped(ComputerEvents.Receiver, byte)
-     * "char" event}.
-     *
-     * @param chr The character to check.
-     * @return Whether this character can be typed.
-     */
-    public static boolean isTypableChar(int chr) {
-        return chr >= 0 && chr <= 255 && chr != 0 && chr != '\r' && chr != '\n';
+    public static boolean isTypableChar(char chr) {
+        return !Character.isISOControl(chr);
     }
 
     private static boolean isAllowedInLabel(char c) {
@@ -123,7 +110,7 @@ public final class StringUtil {
         while (iterator.hasNext() && idx < output.length) {
             var chr = unicodeToTerminal(iterator.next());
             if (chr < 0) continue; // Strip out unconvertible characters
-            if (!isTypableChar(chr)) break; // Stop at untypable ones.
+            if (!isTypableChar((char) chr)) break; // Stop at untypable ones.
             output[idx++] = (byte) chr;
         }
 

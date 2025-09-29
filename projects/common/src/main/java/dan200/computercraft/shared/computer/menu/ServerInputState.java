@@ -64,7 +64,7 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
     }
 
     @Override
-    public void charTyped(byte chr) {
+    public void charTyped(char chr) {
         if (StringUtil.isTypableChar(chr)) ComputerEvents.charTyped(owner.getComputer(), chr);
     }
 

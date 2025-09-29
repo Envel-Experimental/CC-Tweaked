@@ -20,7 +20,7 @@ public interface InputHandler {
 
     void keyUp(int key);
 
-    void charTyped(byte chr);
+    void charTyped(char chr);
 
     void paste(ByteBuffer contents);
 

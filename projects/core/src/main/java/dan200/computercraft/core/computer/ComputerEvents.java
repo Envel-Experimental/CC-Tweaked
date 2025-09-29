@@ -29,10 +29,10 @@ public final class ComputerEvents {
      *
      * @param receiver The computer to queue the event on.
      * @param chr      The character to type.
-     * @see StringUtil#isTypableChar(byte)
+     * @see StringUtil#isTypableChar(char)
      */
-    public static void charTyped(Receiver receiver, byte chr) {
-        receiver.queueEvent("char", new Object[]{ new byte[]{ chr } });
+    public static void charTyped(Receiver receiver, char chr) {
+        receiver.queueEvent("char", new Object[]{ String.valueOf(chr) });
     }
 
     /**

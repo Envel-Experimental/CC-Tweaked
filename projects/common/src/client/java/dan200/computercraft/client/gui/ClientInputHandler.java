@@ -58,7 +58,7 @@ public final class ClientInputHandler implements InputHandler {
     }
 
     @Override
-    public void charTyped(byte chr) {
+    public void charTyped(char chr) {
         ClientNetworking.sendToServer(new KeyEventServerMessage(menu, KeyEventServerMessage.Action.CHAR, chr));
     }
 

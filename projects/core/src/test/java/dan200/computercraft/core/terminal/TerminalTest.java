@@ -327,15 +327,25 @@ class TerminalTest {
     }
 
     @Test
-    public void testBlitPartialBuffer() {
+    void testWriteWithUnicode() {
         var terminal = new Terminal(4, 3, true);
 
-        var text = LuaValues.encode("123456");
-        text.position(1);
+        terminal.write("Прив");
 
-        terminal.blit(text, LuaValues.encode("aaaaaa"), LuaValues.encode("aaaaaa"));
+        assertThat(terminal, textMatches(new String[]{ "Прив", "    ", "    " }));
+    }
 
-        assertThat(terminal.getLine(0).toString(), equalTo("2345"));
+    @Test
+    void testBlitWithUnicode() {
+        var terminal = new Terminal(4, 3, true);
+
+        blit(terminal, "Прив", "1234", "abcd");
+
+        assertThat(terminal, allOf(
+            textMatches(new String[]{ "Прив", "    ", "    " }),
+            textColourMatches(new String[]{ "1234", "0000", "0000" }),
+            backgroundColourMatches(new String[]{ "abcd", "ffff", "ffff" })
+        ));
     }
 
     @Test
@@ -565,7 +575,7 @@ class TerminalTest {
     }
 
     private static void blit(Terminal terminal, String text, String fg, String bg) {
-        terminal.blit(LuaValues.encode(text), LuaValues.encode(fg), LuaValues.encode(bg));
+        terminal.blit(text, LuaValues.encode(fg), LuaValues.encode(bg));
     }
 
     private static final class TerminalBufferSnapshot {
