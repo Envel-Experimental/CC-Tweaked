@@ -70,6 +70,6 @@ class NetworkedTerminalTest {
     }
 
     private static void blit(Terminal terminal, String text, String fg, String bg) {
-        terminal.blit(LuaValues.encode(text), LuaValues.encode(fg), LuaValues.encode(bg));
+        terminal.blit(text, LuaValues.encode(fg), LuaValues.encode(bg));
     }
 }
