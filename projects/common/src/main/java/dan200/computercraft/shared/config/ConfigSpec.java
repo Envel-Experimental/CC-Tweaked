@@ -79,6 +79,7 @@ public final class ConfigSpec {
     public static final ConfigFile clientSpec;
 
     public static final ConfigFile.Value<MonitorRenderer> monitorRenderer;
+    public static final ConfigFile.Value<Font> font;
     public static final ConfigFile.Value<Integer> monitorDistance;
     public static final ConfigFile.Value<Integer> uploadNagDelay;
 
@@ -370,6 +371,14 @@ public final class ConfigSpec {
                 monitors have performance issues, you may wish to experiment with alternative
                 renderers.""")
             .defineEnum("monitor_renderer", MonitorRenderer.BEST);
+        font = clientBuilder
+            .comment("""
+                The font to use for computers and other terminals.
+                "legacy" is the classic ComputerCraft font, using a custom texture. This has limited
+                character support, but is very fast to render.
+                "unicode" is a high-quality font, using Minecraft's built-in font renderer. This has
+                much better language support, but may be slower.""")
+            .defineEnum("font", Font.LEGACY);
         monitorDistance = clientBuilder
             .comment("""
                 The maximum distance monitors will render at. This defaults to the standard tile
@@ -443,6 +452,7 @@ public final class ConfigSpec {
 
     public static void syncClient(@Nullable Path path) {
         Config.monitorRenderer = monitorRenderer.get();
+        Config.font = font.get();
         Config.monitorDistance = monitorDistance.get();
         Config.uploadNagDelay = uploadNagDelay.get();
     }

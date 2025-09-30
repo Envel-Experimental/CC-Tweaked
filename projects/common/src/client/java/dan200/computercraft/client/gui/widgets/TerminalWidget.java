@@ -5,12 +5,16 @@
 package dan200.computercraft.client.gui.widgets;
 
 import com.mojang.blaze3d.vertex.Tesselator;
+import dan200.computercraft.client.FrameInfo;
 import dan200.computercraft.client.gui.KeyConverter;
 import dan200.computercraft.client.render.RenderTypes;
 import dan200.computercraft.client.render.text.FixedWidthFontRenderer;
 import dan200.computercraft.core.terminal.Terminal;
+import dan200.computercraft.core.util.Colour;
 import dan200.computercraft.core.util.StringUtil;
 import dan200.computercraft.shared.computer.core.InputHandler;
+import dan200.computercraft.shared.config.Config;
+import dan200.computercraft.shared.config.Font;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -256,15 +260,64 @@ public class TerminalWidget extends AbstractWidget {
     public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         if (!visible) return;
 
-        var bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-        var emitter = FixedWidthFontRenderer.toVertexConsumer(graphics.pose(), bufferSource.getBuffer(RenderTypes.TERMINAL));
+        if (Config.font == Font.LEGACY) {
+            var bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+            var emitter = FixedWidthFontRenderer.toVertexConsumer(graphics.pose(), bufferSource.getBuffer(RenderTypes.TERMINAL));
 
-        FixedWidthFontRenderer.drawTerminal(
-            emitter,
-            (float) innerX, (float) innerY, terminal, (float) MARGIN, (float) MARGIN, (float) MARGIN, (float) MARGIN
-        );
+            FixedWidthFontRenderer.drawTerminal(
+                emitter,
+                (float) innerX, (float) innerY, terminal, (float) MARGIN, (float) MARGIN, (float) MARGIN, (float) MARGIN
+            );
 
-        bufferSource.endBatch();
+            bufferSource.endBatch();
+        } else {
+            // Draw background
+            var bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+            var emitter = FixedWidthFontRenderer.toVertexConsumer(graphics.pose(), bufferSource.getBuffer(RenderTypes.TERMINAL));
+            FixedWidthFontRenderer.drawTerminalBackground(
+                emitter,
+                (float) innerX, (float) innerY, terminal, (float) MARGIN, (float) MARGIN, (float) MARGIN, (float) MARGIN
+            );
+            bufferSource.endBatch();
+
+            // Draw foreground
+            var font = Minecraft.getInstance().font;
+            var palette = terminal.getPalette();
+
+            var pose = graphics.pose();
+            pose.pushPose();
+            pose.translate(0, 0, 0.5);
+
+            for (var y = 0; y < terminal.getHeight(); y++) {
+                var textLine = terminal.getLine(y);
+                var fgLine = terminal.getTextColourLine(y);
+                for (var x = 0; x < terminal.getWidth(); x++) {
+                    var character = textLine.charAt(x);
+                    if (character == ' ' || character == '\0') continue;
+
+                    var colour = palette.getRenderColours(FixedWidthFontRenderer.getColour(fgLine.charAt(x), Colour.BLACK));
+                    var chStr = String.valueOf(character);
+                    var charWidth = font.width(chStr);
+                    var xPos = innerX + x * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
+                    var yPos = innerY + y * FONT_HEIGHT + 1;
+                    graphics.drawString(font, chStr, (int) xPos, yPos, colour, false);
+                }
+            }
+
+            // Draw cursor
+            if (FixedWidthFontRenderer.isCursorVisible(terminal) && FrameInfo.getGlobalCursorBlink()) {
+                var cursorX = terminal.getCursorX();
+                var cursorY = terminal.getCursorY();
+                var colour = palette.getRenderColours(15 - terminal.getTextColour());
+                var cursorChar = "_";
+                var charWidth = font.width(cursorChar);
+                var xPos = innerX + cursorX * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
+                var yPos = innerY + cursorY * FONT_HEIGHT + 1;
+                graphics.drawString(font, cursorChar, (int) xPos, yPos, colour, false);
+            }
+
+            pose.popPose();
+        }
     }
 
     @Override
