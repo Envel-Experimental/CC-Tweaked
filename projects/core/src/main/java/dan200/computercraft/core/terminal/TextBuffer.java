@@ -5,6 +5,7 @@
 package dan200.computercraft.core.terminal;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class TextBuffer {
     private final char[] text;
@@ -37,16 +38,7 @@ public class TextBuffer {
     }
 
     public void write(ByteBuffer text, int start) {
-        var pos = start;
-        var bufferPos = text.position();
-
-        start = Math.max(start, 0);
-        var length = text.remaining();
-        var end = Math.min(start + length, pos + length);
-        end = Math.min(end, this.text.length);
-        for (var i = start; i < end; i++) {
-            this.text[i] = (char) (text.get(bufferPos + i - pos) & 0xFF);
-        }
+        write(StandardCharsets.UTF_8.decode(text).toString(), start);
     }
 
     public void write(TextBuffer text) {
