@@ -80,10 +80,10 @@ public class CustomLecternRenderer implements BlockEntityRenderer<CustomLecternB
 
             // Either render the terminal or a black screen, depending on how close we are.
             var terminal = computer == null ? null : computer.getTerminal();
-            var quadEmitter = FixedWidthFontRenderer.toVertexConsumer(poseStack, buffer.getBuffer(RenderTypes.TERMINAL));
             if (terminal != null && Vec3.atCenterOf(lectern.getBlockPos()).closerThan(berDispatcher.camera.getPosition(), POCKET_TERMINAL_RENDER_DISTANCE)) {
-                renderPocketTerminal(poseStack, quadEmitter, terminal);
+                renderPocketTerminal(poseStack, buffer, terminal);
             } else {
+                var quadEmitter = FixedWidthFontRenderer.toVertexConsumer(poseStack, buffer.getBuffer(RenderTypes.TERMINAL));
                 FixedWidthFontRenderer.drawEmptyTerminal(quadEmitter, 0, 0, LecternPocketModel.TERM_WIDTH, LecternPocketModel.TERM_HEIGHT);
             }
         }
@@ -91,7 +91,8 @@ public class CustomLecternRenderer implements BlockEntityRenderer<CustomLecternB
         poseStack.popPose();
     }
 
-    private static void renderPocketTerminal(PoseStack poseStack, FixedWidthFontRenderer.QuadEmitter quadEmitter, Terminal terminal) {
+    private static void renderPocketTerminal(PoseStack poseStack, MultiBufferSource buffer, Terminal terminal) {
+        var quadEmitter = FixedWidthFontRenderer.toVertexConsumer(poseStack, buffer.getBuffer(RenderTypes.TERMINAL));
         var width = terminal.getWidth() * FONT_WIDTH;
         var height = terminal.getHeight() * FONT_HEIGHT;
 
@@ -105,6 +106,13 @@ public class CustomLecternRenderer implements BlockEntityRenderer<CustomLecternB
         var marginX = ((LecternPocketModel.TERM_WIDTH / scale) - width) / 2;
         var marginY = ((LecternPocketModel.TERM_HEIGHT / scale) - height) / 2;
 
-        FixedWidthFontRenderer.drawTerminal(quadEmitter, marginX, marginY, terminal, marginY, marginY, marginX, marginX);
+        var unrenderable = FixedWidthFontRenderer.drawTerminal(quadEmitter, marginX, marginY, terminal, marginY, marginY, marginX, marginX);
+
+        if (unrenderable.isEmpty()) return;
+
+        var font = Minecraft.getInstance().font;
+        for (var c : unrenderable) {
+            font.drawInBatch(String.valueOf(c.c()), c.x(), c.y(), c.colour(), false, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, 15728880);
+        }
     }
 }

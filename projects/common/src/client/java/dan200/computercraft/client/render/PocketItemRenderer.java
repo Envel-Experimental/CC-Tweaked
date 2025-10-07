@@ -75,7 +75,13 @@ public final class PocketItemRenderer extends ItemMapLikeRenderer {
         if (terminal == null) {
             FixedWidthFontRenderer.drawEmptyTerminal(quadEmitter, 0, 0, width, height);
         } else {
-            FixedWidthFontRenderer.drawTerminal(quadEmitter, MARGIN, MARGIN, terminal, MARGIN, MARGIN, MARGIN, MARGIN);
+            var unrenderable = FixedWidthFontRenderer.drawTerminal(quadEmitter, MARGIN, MARGIN, terminal, MARGIN, MARGIN, MARGIN, MARGIN);
+            if (!unrenderable.isEmpty()) {
+                var font = Minecraft.getInstance().font;
+                for (var c : unrenderable) {
+                    font.drawInBatch(String.valueOf(c.c()), c.x(), c.y(), c.colour(), false, transform.last().pose(), bufferSource, Font.DisplayMode.NORMAL, 0, light);
+                }
+            }
         }
 
         transform.popPose();

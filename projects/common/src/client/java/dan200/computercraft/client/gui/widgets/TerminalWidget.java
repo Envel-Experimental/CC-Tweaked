@@ -260,12 +260,19 @@ public class TerminalWidget extends AbstractWidget {
         var bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         var emitter = FixedWidthFontRenderer.toVertexConsumer(graphics.pose(), bufferSource.getBuffer(RenderTypes.TERMINAL));
 
-        FixedWidthFontRenderer.drawTerminal(
+        var unrenderable = FixedWidthFontRenderer.drawTerminal(
             emitter,
             (float) innerX, (float) innerY, terminal, (float) MARGIN, (float) MARGIN, (float) MARGIN, (float) MARGIN
         );
 
         bufferSource.endBatch();
+
+        if (unrenderable.isEmpty()) return;
+
+        var font = Minecraft.getInstance().font;
+        for (var c : unrenderable) {
+            graphics.drawString(font, String.valueOf(c.c()), (int) c.x(), (int) c.y(), c.colour(), false);
+        }
     }
 
     @Override
