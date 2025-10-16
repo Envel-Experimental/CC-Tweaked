@@ -378,7 +378,7 @@ public final class ConfigSpec {
                 character support, but is very fast to render.
                 "unicode" is a high-quality font, using Minecraft's built-in font renderer. This has
                 much better language support, but may be slower.""")
-            .defineEnum("font", Font.LEGACY);
+            .defineEnum("font", Font.UNICODE);
         monitorDistance = clientBuilder
             .comment("""
                 The maximum distance monitors will render at. This defaults to the standard tile

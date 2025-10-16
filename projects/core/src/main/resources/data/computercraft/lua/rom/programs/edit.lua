@@ -55,15 +55,15 @@ local menu  = require "cc.internal.menu"
 local current_menu
 local menu_items = {}
 if not bReadOnly then
-    table.insert(menu_items, "Save")
+    table.insert(menu_items, "Сохранить")
 end
 if shell.openTab then
-    table.insert(menu_items, "Run")
+    table.insert(menu_items, "Запустить")
 end
 if peripheral.find("printer") then
-    table.insert(menu_items, "Print")
+    table.insert(menu_items, "Печать")
 end
-table.insert(menu_items, "Exit")
+table.insert(menu_items, "Выйти")
 
 local status_ok, status_text
 local function set_status(text, ok)
@@ -72,19 +72,19 @@ local function set_status(text, ok)
 end
 
 if bReadOnly then
-    set_status("File is read only", false)
+    set_status("Файл только для чтения", false)
 elseif fs.getFreeSpace(sPath) < 1024 then
-    set_status("Disk is low on space", false)
+    set_status("Мало места на диске", false)
 else
     local message
     if term.isColour() then
-        message = "Press Ctrl or click here to access menu"
+        message = "Нажми Ctrl или кликни, чтобы открыть меню"
     else
-        message = "Press Ctrl to access menu"
+        message = "Нажми Ctrl, чтобы открыть меню"
     end
 
     if #message > w - 5 then
-        message = "Press Ctrl for menu"
+        message = "Нажми Ctrl для меню"
     end
 
     set_status(message)
