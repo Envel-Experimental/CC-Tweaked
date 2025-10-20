@@ -35,6 +35,7 @@ dependencies {
 
     testImplementation(libs.asm)
     testImplementation(libs.bundles.test)
+    testImplementation(testFixtures(project(":core")))
     testRuntimeOnly(libs.bundles.testRuntime)
     testRuntimeOnly(libs.slf4j.simple)
 }
