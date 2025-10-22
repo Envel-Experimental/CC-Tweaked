@@ -121,7 +121,8 @@ public final class FixedWidthFontRenderer {
         for (var i = 0; i < text.length(); i++) {
             var colour = palette.getRenderColours(getColour(textColour.charAt(i), Colour.BLACK));
 
-            drawChar(emitter, x + i * FONT_WIDTH, y, text.charAt(i), colour, light);
+            int index = text.charAt(i);
+            drawChar(emitter, x + i * FONT_WIDTH, y, index, colour, light);
         }
 
     }

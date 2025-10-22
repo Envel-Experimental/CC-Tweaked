@@ -24,7 +24,7 @@ public final class Config {
     public static int modemHighAltitudeRangeDuringStorm = 384;
     public static int maxNotesPerTick = 8;
     public static MonitorRenderer monitorRenderer = MonitorRenderer.BEST;
-    public static Font font = Font.LEGACY;
+    public static Font font = Font.UNICODE;
     public static int monitorDistance = 65;
     public static long monitorBandwidth = 1_000_000;
 
