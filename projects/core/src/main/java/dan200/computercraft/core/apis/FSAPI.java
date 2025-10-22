@@ -9,9 +9,7 @@ import dan200.computercraft.api.lua.IArguments;
 import dan200.computercraft.api.lua.ILuaAPI;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
-import dan200.computercraft.core.apis.handles.ReadHandle;
-import dan200.computercraft.core.apis.handles.ReadWriteHandle;
-import dan200.computercraft.core.apis.handles.WriteHandle;
+import dan200.computercraft.core.apis.handles.*;
 import dan200.computercraft.core.filesystem.FileSystem;
 import dan200.computercraft.core.filesystem.FileSystemException;
 import dan200.computercraft.core.metrics.Metrics;
@@ -368,28 +366,54 @@ public class FSAPI implements ILuaAPI {
 
         var binary = mode.indexOf('b') >= 0;
         try (var ignored = environment.time(Metrics.FS_OPS)) {
-            switch (mode) {
-                case "r", "rb" -> {
-                    var reader = getFileSystem().openForRead(path);
-                    return new Object[]{ new ReadHandle(reader.get(), reader, binary) };
+            if (binary) {
+                switch (mode) {
+                    case "rb" -> {
+                        var reader = getFileSystem().openForRead(path);
+                        return new Object[]{ new ReadHandle(reader.get(), reader, true) };
+                    }
+                    case "wb" -> {
+                        var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
+                        return new Object[]{ WriteHandle.of(writer.get(), writer, true, true) };
+                    }
+                    case "ab" -> {
+                        var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
+                        return new Object[]{ WriteHandle.of(writer.get(), writer, true, false) };
+                    }
+                    case "r+b" -> {
+                        var reader = getFileSystem().openForWrite(path, READ_EXTENDED);
+                        return new Object[]{ new ReadWriteHandle(reader.get(), reader, true) };
+                    }
+                    case "w+b" -> {
+                        var writer = getFileSystem().openForWrite(path, WRITE_EXTENDED);
+                        return new Object[]{ new ReadWriteHandle(writer.get(), writer, true) };
+                    }
+                    default -> throw new LuaException(MountConstants.UNSUPPORTED_MODE);
                 }
-                case "w", "wb" -> {
-                    var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
-                    return new Object[]{ WriteHandle.of(writer.get(), writer, binary, true) };
+            } else {
+                switch (mode) {
+                    case "r" -> {
+                        var reader = getFileSystem().openForRead(path);
+                        return new Object[]{ new EncodedReadHandle(new ReadHandle(reader.get(), reader, false)) };
+                    }
+                    case "w" -> {
+                        var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
+                        return new Object[]{ new EncodedWriteHandle(WriteHandle.of(writer.get(), writer, false, true)) };
+                    }
+                    case "a" -> {
+                        var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
+                        return new Object[]{ new EncodedWriteHandle(WriteHandle.of(writer.get(), writer, false, false)) };
+                    }
+                    case "r+" -> {
+                        var reader = getFileSystem().openForWrite(path, READ_EXTENDED);
+                        return new Object[]{ new EncodedReadWriteHandle(new ReadWriteHandle(reader.get(), reader, false)) };
+                    }
+                    case "w+" -> {
+                        var writer = getFileSystem().openForWrite(path, WRITE_EXTENDED);
+                        return new Object[]{ new EncodedReadWriteHandle(new ReadWriteHandle(writer.get(), writer, false)) };
+                    }
+                    default -> throw new LuaException(MountConstants.UNSUPPORTED_MODE);
                 }
-                case "a", "ab" -> {
-                    var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
-                    return new Object[]{ WriteHandle.of(writer.get(), writer, binary, false) };
-                }
-                case "r+", "r+b" -> {
-                    var reader = getFileSystem().openForWrite(path, READ_EXTENDED);
-                    return new Object[]{ new ReadWriteHandle(reader.get(), reader, binary) };
-                }
-                case "w+", "w+b" -> {
-                    var writer = getFileSystem().openForWrite(path, WRITE_EXTENDED);
-                    return new Object[]{ new ReadWriteHandle(writer.get(), writer, binary) };
-                }
-                default -> throw new LuaException(MountConstants.UNSUPPORTED_MODE);
             }
         } catch (FileSystemException e) {
             return new Object[]{ null, e.getMessage() };

@@ -6,8 +6,6 @@ package dan200.computercraft.core.apis.handles;
 
 import dan200.computercraft.api.lua.Coerced;
 import dan200.computercraft.api.lua.IArguments;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.core.filesystem.TrackingCloseable;
@@ -273,10 +271,8 @@ public abstract class AbstractHandle {
             if (binary && arg instanceof Number n) {
                 var number = n.intValue();
                 writeSingle((byte) number);
-            } else if (binary) {
-                channel.write(arguments.getBytesCoerced(0));
             } else {
-                channel.write(ByteBuffer.wrap(arguments.getString(0).getBytes(StandardCharsets.UTF_8)));
+                channel.write(arguments.getBytesCoerced(0));
             }
         } catch (IOException e) {
             throw new LuaException(e.getMessage());
@@ -286,17 +282,13 @@ public abstract class AbstractHandle {
     /**
      * Write a string of characters to the file, following them with a new line character.
      *
-     * @param arguments The text to write to the file.
+     * @param text The text to write to the file.
      * @throws LuaException If the file has been closed.
      */
-    public void writeLine(IArguments arguments) throws LuaException {
+    public void writeLine(Coerced<ByteBuffer> text) throws LuaException {
         checkOpen();
         try {
-            if (binary) {
-                channel.write(arguments.getBytesCoerced(0));
-            } else {
-                channel.write(ByteBuffer.wrap(arguments.getString(0).getBytes(StandardCharsets.UTF_8)));
-            }
+            channel.write(text.value());
             writeSingle((byte) '\n');
         } catch (IOException e) {
             throw new LuaException(e.getMessage());

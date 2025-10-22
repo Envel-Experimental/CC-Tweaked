@@ -43,7 +43,7 @@ public class WriteHandle extends AbstractHandle {
      */
     @Override
     @LuaFunction
-    public final void writeLine(IArguments text) throws LuaException {
+    public final void writeLine(Coerced<ByteBuffer> text) throws LuaException {
         super.writeLine(text);
     }
 
