@@ -33,6 +33,7 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
     private final ComputerFamily family;
     private final ContainerData data;
 
+    private final boolean canInput;
     private final @Nullable ServerComputer computer;
     private final @Nullable ServerInputState<AbstractComputerMenu> input;
 
@@ -44,13 +45,40 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
         MenuType<? extends AbstractComputerMenu> type, int id, Predicate<Player> canUse,
         ComputerFamily family, @Nullable ServerComputer computer, @Nullable ComputerContainerData containerData
     ) {
+        this(type, id, canUse, family, computer, containerData, null);
+    }
+
+    protected AbstractComputerMenu(
+        MenuType<? extends AbstractComputerMenu> type, int id, Predicate<Player> canUse,
+        ComputerFamily family, @Nullable ServerComputer computer, @Nullable ComputerContainerData containerData,
+        @Nullable Player player
+    ) {
         super(type, id);
         this.canUse = canUse;
         this.family = family;
-        data = computer == null ? new SimpleContainerData(1) : (SingleContainerData) () -> computer.isOn() ? 1 : 0;
+        this.computer = computer;
+
+        this.canInput = computer == null || player == null || computer.tryClaimControl(player);
+
+        data = computer == null ? new SimpleContainerData(2) : new ContainerData() {
+            @Override
+            public int get(int index) {
+                if (index == 0) return computer.isOn() ? 1 : 0;
+                if (index == 1) return canInput ? 1 : 0;
+                return 0;
+            }
+
+            @Override
+            public void set(int index, int value) {
+            }
+
+            @Override
+            public int getCount() {
+                return 2;
+            }
+        };
         addDataSlots(data);
 
-        this.computer = computer;
         input = computer == null ? null : new ServerInputState<>(this);
         terminal = containerData == null ? null : containerData.terminal().create();
         displayStack = containerData == null ? ItemStack.EMPTY : containerData.displayStack();
@@ -68,6 +96,11 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
 
     public boolean isOn() {
         return data.get(0) != 0;
+    }
+
+    @Override
+    public boolean canInput() {
+        return data.get(1) != 0;
     }
 
     public int getUploadMaxSize() {
@@ -107,6 +140,7 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
     public void removed(Player player) {
         super.removed(player);
         if (input != null) input.close();
+        if (computer != null && canInput) computer.releaseControl(player);
     }
 
     /**

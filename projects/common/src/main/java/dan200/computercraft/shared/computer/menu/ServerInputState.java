@@ -53,23 +53,27 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void keyDown(int key, boolean repeat) {
+        if (!owner.canInput()) return;
         keysDown.add(key);
         ComputerEvents.keyDown(owner.getComputer(), key, repeat);
     }
 
     @Override
     public void keyUp(int key) {
+        if (!owner.canInput()) return;
         keysDown.remove(key);
         ComputerEvents.keyUp(owner.getComputer(), key);
     }
 
     @Override
     public void charTyped(byte chr) {
+        if (!owner.canInput()) return;
         if (StringUtil.isTypableChar(chr)) ComputerEvents.charTyped(owner.getComputer(), chr);
     }
 
     @Override
     public void paste(ByteBuffer contents) {
+        if (!owner.canInput()) return;
         if (contents.remaining() > 0 && isValidClipboard(contents)) ComputerEvents.paste(owner.getComputer(), contents);
     }
 
@@ -82,6 +86,7 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseClick(int button, int x, int y) {
+        if (!owner.canInput()) return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = button;
@@ -91,6 +96,7 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseUp(int button, int x, int y) {
+        if (!owner.canInput()) return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = -1;
@@ -100,6 +106,7 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseDrag(int button, int x, int y) {
+        if (!owner.canInput()) return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = button;
@@ -109,6 +116,7 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseScroll(int direction, int x, int y) {
+        if (!owner.canInput()) return;
         lastMouseX = x;
         lastMouseY = y;
 
@@ -117,21 +125,25 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void terminate() {
+        if (!owner.canInput()) return;
         owner.getComputer().queueEvent("terminate");
     }
 
     @Override
     public void shutdown() {
+        if (!owner.canInput()) return;
         owner.getComputer().shutdown();
     }
 
     @Override
     public void turnOn() {
+        if (!owner.canInput()) return;
         owner.getComputer().turnOn();
     }
 
     @Override
     public void reboot() {
+        if (!owner.canInput()) return;
         owner.getComputer().reboot();
     }
 

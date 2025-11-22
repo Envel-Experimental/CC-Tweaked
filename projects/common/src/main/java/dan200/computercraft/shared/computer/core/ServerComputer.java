@@ -55,6 +55,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
 
     private int ticksSincePing;
 
+    private @Nullable UUID controllerUUID;
+
     public ServerComputer(ServerLevel level, BlockPos position, Properties properties) {
         this.level = level;
         this.position = position;
@@ -150,6 +152,40 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     public final void close() {
         unload();
         ServerContext.get(level.getServer()).registry().remove(this);
+    }
+
+    /**
+     * Try to claim control of this computer for the given player.
+     *
+     * @param player The player trying to claim control.
+     * @return Whether the player has control.
+     */
+    public boolean tryClaimControl(Player player) {
+        // Advanced and Command computers allow multiple users
+        if (family != ComputerFamily.NORMAL) return true;
+
+        // Operators can always use the computer
+        if (player.hasPermissions(2)) return true;
+
+        // If nobody is controlling it, claim it
+        if (controllerUUID == null) {
+            controllerUUID = player.getUUID();
+            return true;
+        }
+
+        // If this player is already controlling it, allow
+        return controllerUUID.equals(player.getUUID());
+    }
+
+    /**
+     * Release control of this computer if the given player is holding it.
+     *
+     * @param player The player releasing control.
+     */
+    public void releaseControl(Player player) {
+        if (controllerUUID != null && controllerUUID.equals(player.getUUID())) {
+            controllerUUID = null;
+        }
     }
 
     /**

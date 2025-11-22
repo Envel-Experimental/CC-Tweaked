@@ -38,7 +38,7 @@ public final class TurtleMenu extends AbstractComputerMenu {
         int id, Predicate<Player> canUse, ComputerFamily family, @Nullable ServerComputer computer, @Nullable ComputerContainerData menuData,
         Inventory playerInventory, Container inventory, Container turtleUpgrades, ContainerData data
     ) {
-        super(ModRegistry.Menus.TURTLE.get(), id, canUse, family, computer, menuData);
+        super(ModRegistry.Menus.TURTLE.get(), id, canUse, family, computer, menuData, playerInventory.player);
         this.data = data;
         addDataSlots(data);
 

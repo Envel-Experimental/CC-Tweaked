@@ -218,6 +218,7 @@ public final class LanguageProvider implements DataProvider {
         add("gui.computercraft.upload.no_response", "Transferring Files");
         add("gui.computercraft.upload.no_response.msg", "Your computer has not used your transferred files. You may need to run the %s program and try again.");
         add("gui.computercraft.pocket_computer_overlay", "Pocket computer open. Press ESC to close.");
+        add("gui.computercraft.read_only", "READ ONLY");
 
         // Config options
         addConfigEntry(ConfigSpec.computerSpaceLimit, "Computer space limit (bytes)");

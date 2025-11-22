@@ -24,12 +24,12 @@ public class ComputerMenuWithoutInventory extends AbstractComputerMenu {
         MenuType<? extends AbstractComputerMenu> type, int id, Inventory player, Predicate<Player> canUse,
         ServerComputer computer
     ) {
-        super(type, id, canUse, computer.getFamily(), computer, null);
+        super(type, id, canUse, computer.getFamily(), computer, null, player.player);
         addSlots(player);
     }
 
     public ComputerMenuWithoutInventory(MenuType<? extends AbstractComputerMenu> type, int id, Inventory player, ComputerContainerData menuData) {
-        super(type, id, p -> true, menuData.family(), null, menuData);
+        super(type, id, p -> true, menuData.family(), null, menuData, player.player);
         addSlots(player);
     }
 

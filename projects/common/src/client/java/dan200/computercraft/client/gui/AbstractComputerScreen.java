@@ -88,7 +88,9 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
         super.init();
 
         terminal = addRenderableWidget(createTerminal());
-        ComputerSidebar.addButtons(menu::isOn, input, this::addRenderableWidget, leftPos, topPos + sidebarYOffset);
+        if (menu.canInput()) {
+            ComputerSidebar.addButtons(menu::isOn, input, this::addRenderableWidget, leftPos, topPos + sidebarYOffset);
+        }
         setFocused(terminal);
     }
 
@@ -106,6 +108,8 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
 
     @Override
     public boolean keyPressed(int key, int scancode, int modifiers) {
+        if (!menu.canInput()) return super.keyPressed(key, scancode, modifiers);
+
         // Forward the tab key to the terminal, rather than moving between controls.
         if (key == GLFW.GLFW_KEY_TAB && getFocused() != null && getFocused() == terminal) {
             return getFocused().keyPressed(key, scancode, modifiers);
@@ -155,7 +159,9 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // Skip rendering labels.
+        if (!menu.canInput()) {
+            graphics.drawString(font, Component.translatable("gui.computercraft.read_only"), 18, 6, 0xFF0000, false);
+        }
     }
 
     @Override

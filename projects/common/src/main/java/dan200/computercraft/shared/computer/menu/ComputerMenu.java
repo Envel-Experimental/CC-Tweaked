@@ -37,4 +37,13 @@ public interface ComputerMenu {
      * @throws UnsupportedOperationException When used on the server.
      */
     void updateTerminal(TerminalState state);
+
+    /**
+     * Check if the current user can input to the computer.
+     *
+     * @return Whether the user can input.
+     */
+    default boolean canInput() {
+        return true;
+    }
 }
