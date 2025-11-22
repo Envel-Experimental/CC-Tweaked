@@ -255,7 +255,7 @@ public class MonitorBlockEntityRenderer implements BlockEntityRenderer<MonitorBl
                             var xPos = x * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
                             var yPos = y * FONT_HEIGHT + 1; // +1 similar to TerminalWidget
 
-                            font.drawInBatch(chStr, xPos, yPos, colour, false, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, 15728880);
+                            font.drawInBatch(chStr, xPos, yPos, colour, false, matrix, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 15728880);
                         }
                     }
 
@@ -269,7 +269,7 @@ public class MonitorBlockEntityRenderer implements BlockEntityRenderer<MonitorBl
                         var xPos = cursorX * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
                         var yPos = cursorY * FONT_HEIGHT + 1;
 
-                        font.drawInBatch(cursorChar, xPos, yPos, colour, false, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, 15728880);
+                        font.drawInBatch(cursorChar, xPos, yPos, colour, false, matrix, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 15728880);
                     }
 
                     bufferSource.endBatch();
