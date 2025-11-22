@@ -39,9 +39,13 @@ public abstract class TermMethods {
     public final void write(Coerced<String> textA) throws LuaException {
         var text = textA.value();
         var terminal = getTerminal();
+
+        // Try to decode UTF-8 mixed with Latin-1
+        var decoded = dan200.computercraft.core.util.StringUtil.decodeMixedUTF8(text);
+
         synchronized (terminal) {
-            terminal.write(text);
-            terminal.setCursorPos(terminal.getCursorX() + text.length(), terminal.getCursorY());
+            terminal.write(decoded);
+            terminal.setCursorPos(terminal.getCursorX() + decoded.length(), terminal.getCursorY());
         }
     }
 

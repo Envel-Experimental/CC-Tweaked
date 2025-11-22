@@ -116,4 +116,58 @@ public final class StringUtil {
 
         return ByteBuffer.wrap(output, 0, idx).asReadOnlyBuffer();
     }
+
+    /**
+     * Decodes a string that may contain mixed Latin-1 and UTF-8 encoded text.
+     * This treats the input string as a sequence of bytes (0-255), and attempts to decode valid UTF-8 sequences.
+     * Invalid UTF-8 sequences are left as-is (as Latin-1 characters).
+     *
+     * @param text The text to decode.
+     * @return The decoded text.
+     */
+    public static String decodeMixedUTF8(String text) {
+        int len = text.length();
+        StringBuilder sb = new StringBuilder(len);
+
+        for (int i = 0; i < len; i++) {
+            char c = text.charAt(i);
+            // Check if this is a start of a UTF-8 sequence (0xC0 - 0xF7, technically 0xC2 for 2 bytes)
+            // We assume the input string characters are in range 0-255.
+            if (c >= 0xC0 && c <= 0xF7 && i + 1 < len) {
+                int b1 = c;
+                int sequenceLen = 0;
+                if ((b1 & 0xE0) == 0xC0) sequenceLen = 2;
+                else if ((b1 & 0xF0) == 0xE0) sequenceLen = 3;
+                else if ((b1 & 0xF8) == 0xF0) sequenceLen = 4;
+
+                if (sequenceLen > 0 && i + sequenceLen <= len) {
+                    // Check continuation bytes
+                    boolean valid = true;
+                    byte[] bytes = new byte[sequenceLen];
+                    bytes[0] = (byte) b1;
+
+                    for (int j = 1; j < sequenceLen; j++) {
+                        char next = text.charAt(i + j);
+                        if ((next & 0xC0) != 0x80) {
+                            valid = false;
+                            break;
+                        }
+                        bytes[j] = (byte) next;
+                    }
+
+                    if (valid) {
+                        try {
+                            sb.append(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                            i += sequenceLen - 1;
+                            continue;
+                        } catch (Exception ignored) {
+                            // Fallback to append original char
+                        }
+                    }
+                }
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
 }

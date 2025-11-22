@@ -41,7 +41,19 @@ public class KeyEventServerMessage extends ComputerServerMessage {
             case UP -> input.keyUp(key);
             case DOWN -> input.keyDown(key, false);
             case REPEAT -> input.keyDown(key, true);
-            case CHAR -> input.charTyped((char) key);
+            case CHAR -> {
+                if (key < 128) {
+                    input.charTyped((char) key);
+                } else {
+                    // If the character is not ASCII, we encode it as UTF-8 and send each byte as a character.
+                    // This allows the Lua side to receive UTF-8 encoded strings.
+                    var s = String.valueOf((char) key);
+                    var bytes = s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    for (byte b : bytes) {
+                        input.charTyped((char) (b & 0xFF));
+                    }
+                }
+            }
         }
     }
 
