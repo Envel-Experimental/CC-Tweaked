@@ -122,7 +122,8 @@ public final class FixedWidthFontRenderer {
             var colour = palette.getRenderColours(getColour(textColour.charAt(i), Colour.BLACK));
 
             int index = text.charAt(i);
-            if (index > 255) index = '?';
+            // If the character is not in the texture, we can't render it.
+            if (index > 255) continue;
             drawChar(emitter, x + i * FONT_WIDTH, y, index, colour, light);
         }
 

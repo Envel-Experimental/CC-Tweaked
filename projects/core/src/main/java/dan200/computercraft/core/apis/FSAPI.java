@@ -9,6 +9,8 @@ import dan200.computercraft.api.lua.IArguments;
 import dan200.computercraft.api.lua.ILuaAPI;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
+import dan200.computercraft.core.apis.handles.EncodedReadHandle;
+import dan200.computercraft.core.apis.handles.EncodedWriteHandle;
 import dan200.computercraft.core.apis.handles.ReadHandle;
 import dan200.computercraft.core.apis.handles.ReadWriteHandle;
 import dan200.computercraft.core.apis.handles.WriteHandle;
@@ -369,17 +371,29 @@ public class FSAPI implements ILuaAPI {
         var binary = mode.indexOf('b') >= 0;
         try (var ignored = environment.time(Metrics.FS_OPS)) {
             switch (mode) {
-                case "r", "rb" -> {
+                case "r" -> {
                     var reader = getFileSystem().openForRead(path);
-                    return new Object[]{ new ReadHandle(reader.get(), reader, binary) };
+                    return new Object[]{ new EncodedReadHandle(reader.get(), reader) };
                 }
-                case "w", "wb" -> {
+                case "rb" -> {
+                    var reader = getFileSystem().openForRead(path);
+                    return new Object[]{ new ReadHandle(reader.get(), reader, true) };
+                }
+                case "w" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
-                    return new Object[]{ WriteHandle.of(writer.get(), writer, binary, true) };
+                    return new Object[]{ new EncodedWriteHandle(writer.get(), writer) };
                 }
-                case "a", "ab" -> {
+                case "wb" -> {
+                    var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
+                    return new Object[]{ WriteHandle.of(writer.get(), writer, true, true) };
+                }
+                case "a" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
-                    return new Object[]{ WriteHandle.of(writer.get(), writer, binary, false) };
+                    return new Object[]{ new EncodedWriteHandle(writer.get(), writer) };
+                }
+                case "ab" -> {
+                    var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
+                    return new Object[]{ WriteHandle.of(writer.get(), writer, true, false) };
                 }
                 case "r+", "r+b" -> {
                     var reader = getFileSystem().openForWrite(path, READ_EXTENDED);

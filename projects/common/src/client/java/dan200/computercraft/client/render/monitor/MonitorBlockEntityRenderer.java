@@ -17,11 +17,15 @@ import dan200.computercraft.client.render.text.FixedWidthFontRenderer;
 import dan200.computercraft.client.render.vbo.DirectBuffers;
 import dan200.computercraft.client.render.vbo.DirectVertexBuffer;
 import dan200.computercraft.core.terminal.Terminal;
+import dan200.computercraft.core.terminal.Palette;
+import dan200.computercraft.core.util.Colour;
 import dan200.computercraft.shared.config.Config;
+import dan200.computercraft.shared.config.Font;
 import dan200.computercraft.shared.peripheral.monitor.ClientMonitor;
 import dan200.computercraft.shared.peripheral.monitor.MonitorBlockEntity;
 import dan200.computercraft.shared.peripheral.monitor.MonitorRenderer;
 import dan200.computercraft.shared.util.DirectionUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -202,23 +206,74 @@ public class MonitorBlockEntityRenderer implements BlockEntityRenderer<MonitorBl
                 backgroundBuffer.drawWithShader(matrix, RenderSystem.getProjectionMatrix(), RenderTypes.getTerminalShader());
 
                 // Render foreground geometry with glPolygonOffset enabled.
-                RenderSystem.polygonOffset(-1.0f, -10.0f);
-                RenderSystem.enablePolygonOffset();
+                // If we are using unicode, we can't use the VBO for the foreground, as the texture won't
+                // contain the characters we need.
+                if (Config.font != Font.UNICODE) {
+                    RenderSystem.polygonOffset(-1.0f, -10.0f);
+                    RenderSystem.enablePolygonOffset();
 
-                foregroundBuffer.bind();
-                foregroundBuffer.drawWithShader(
-                    matrix, RenderSystem.getProjectionMatrix(), RenderTypes.getTerminalShader(),
-                    // Skip the cursor quad if it is not visible this frame.
-                    FixedWidthFontRenderer.isCursorVisible(terminal) && !FrameInfo.getGlobalCursorBlink()
-                        ? foregroundBuffer.getIndexCount() - RenderTypes.TERMINAL.mode().indexCount(4)
-                        : foregroundBuffer.getIndexCount()
-                );
+                    foregroundBuffer.bind();
+                    foregroundBuffer.drawWithShader(
+                        matrix, RenderSystem.getProjectionMatrix(), RenderTypes.getTerminalShader(),
+                        // Skip the cursor quad if it is not visible this frame.
+                        FixedWidthFontRenderer.isCursorVisible(terminal) && !FrameInfo.getGlobalCursorBlink()
+                            ? foregroundBuffer.getIndexCount() - RenderTypes.TERMINAL.mode().indexCount(4)
+                            : foregroundBuffer.getIndexCount()
+                    );
 
-                // Clear state
-                RenderSystem.polygonOffset(0.0f, -0.0f);
-                RenderSystem.disablePolygonOffset();
+                    // Clear state
+                    RenderSystem.polygonOffset(0.0f, -0.0f);
+                    RenderSystem.disablePolygonOffset();
+                }
+
                 RenderTypes.TERMINAL.clearRenderState();
                 VertexBuffer.unbind();
+
+                // Draw dynamic font if needed
+                if (Config.font == Font.UNICODE) {
+                    var bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+                    var font = Minecraft.getInstance().font;
+                    var palette = terminal.getPalette();
+
+                    // We need to apply the matrix transform to the pose stack for font rendering
+                    // But font rendering uses its own matrix stack or requires us to pass position.
+                    // The 'matrix' variable is a Matrix4f.
+                    // graphics.drawString uses graphics.pose(), which wraps a PoseStack.
+                    // We don't have a GuiGraphics or PoseStack here, only the matrix.
+                    // However, Font.drawInBatch takes a Matrix4f.
+
+                    for (var y = 0; y < height; y++) {
+                        var textLine = terminal.getLine(y);
+                        var fgLine = terminal.getTextColourLine(y);
+                        for (var x = 0; x < width; x++) {
+                            var character = textLine.charAt(x);
+                            if (character == ' ' || character == '\0') continue;
+
+                            var colour = palette.getRenderColours(FixedWidthFontRenderer.getColour(fgLine.charAt(x), Colour.BLACK));
+                            var chStr = String.valueOf(character);
+                            var charWidth = font.width(chStr);
+                            var xPos = x * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
+                            var yPos = y * FONT_HEIGHT + 1; // +1 similar to TerminalWidget
+
+                            font.drawInBatch(chStr, xPos, yPos, colour, false, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, 15728880);
+                        }
+                    }
+
+                    // Draw cursor
+                     if (FixedWidthFontRenderer.isCursorVisible(terminal) && FrameInfo.getGlobalCursorBlink()) {
+                        var cursorX = terminal.getCursorX();
+                        var cursorY = terminal.getCursorY();
+                        var colour = palette.getRenderColours(15 - terminal.getTextColour());
+                        var cursorChar = "_";
+                        var charWidth = font.width(cursorChar);
+                        var xPos = cursorX * FONT_WIDTH + (FONT_WIDTH - charWidth) / 2.0f;
+                        var yPos = cursorY * FONT_HEIGHT + 1;
+
+                        font.drawInBatch(cursorChar, xPos, yPos, colour, false, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, 15728880);
+                    }
+
+                    bufferSource.endBatch();
+                }
 
                 RenderSystem.setInverseViewRotationMatrix(oldInverseRotation);
             }

@@ -52,7 +52,7 @@ public abstract class AbstractHandle {
      * @throws LuaException If the file has already been closed.
      */
     @LuaFunction
-    public final void close() throws LuaException {
+    public void close() throws LuaException {
         checkOpen();
         IoUtil.closeQuietly(closeable);
         closeable = null;
