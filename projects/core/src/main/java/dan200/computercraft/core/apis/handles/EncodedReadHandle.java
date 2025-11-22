@@ -43,11 +43,17 @@ public class EncodedReadHandle extends AbstractHandle {
                 char[] buffer = new char[count];
                 int read = reader.read(buffer);
                 if (read == -1) return null;
-                return new Object[]{ new String(buffer, 0, read) };
+
+                // Convert the read text (Unicode) to UTF-8 bytes, then to Latin-1 string
+                // so Lua receives the bytes directly.
+                byte[] utf8Bytes = new String(buffer, 0, read).getBytes(StandardCharsets.UTF_8);
+                return new Object[]{ new String(utf8Bytes, StandardCharsets.ISO_8859_1) };
             } else {
                 int read = reader.read();
                 if (read == -1) return null;
-                return new Object[]{ String.valueOf((char) read) };
+
+                byte[] utf8Bytes = String.valueOf((char) read).getBytes(StandardCharsets.UTF_8);
+                return new Object[]{ new String(utf8Bytes, StandardCharsets.ISO_8859_1) };
             }
         } catch (IOException e) {
             return null;
@@ -65,7 +71,9 @@ public class EncodedReadHandle extends AbstractHandle {
             while ((read = reader.read(buffer)) != -1) {
                 builder.append(buffer, 0, read);
             }
-            return new Object[]{ builder.toString() };
+
+            byte[] utf8Bytes = builder.toString().getBytes(StandardCharsets.UTF_8);
+            return new Object[]{ new String(utf8Bytes, StandardCharsets.ISO_8859_1) };
         } catch (IOException e) {
             return null;
         }
@@ -79,13 +87,10 @@ public class EncodedReadHandle extends AbstractHandle {
         try {
             String line = reader.readLine();
             if (line == null) return null;
-            if (withTrailing) {
-                return new Object[]{ line + "\n" }; // BufferedReader strips newline, so we guess \n. Ideally we'd check.
-                // Note: standard BufferedReader doesn't tell us if it was \r, \n or \r\n.
-                // For strict compatibility with AbstractHandle's byte-based readLine, this might be slightly different,
-                // but for text mode this is usually acceptable.
-            }
-            return new Object[]{ line };
+            if (withTrailing) line += "\n";
+
+            byte[] utf8Bytes = line.getBytes(StandardCharsets.UTF_8);
+            return new Object[]{ new String(utf8Bytes, StandardCharsets.ISO_8859_1) };
         } catch (IOException e) {
             return null;
         }
