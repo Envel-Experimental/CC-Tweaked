@@ -9,8 +9,6 @@ import dan200.computercraft.api.lua.IArguments;
 import dan200.computercraft.api.lua.ILuaAPI;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
-import dan200.computercraft.core.apis.handles.EncodedReadHandle;
-import dan200.computercraft.core.apis.handles.EncodedWriteHandle;
 import dan200.computercraft.core.apis.handles.ReadHandle;
 import dan200.computercraft.core.apis.handles.ReadWriteHandle;
 import dan200.computercraft.core.apis.handles.WriteHandle;
@@ -373,7 +371,7 @@ public class FSAPI implements ILuaAPI {
             switch (mode) {
                 case "r" -> {
                     var reader = getFileSystem().openForRead(path);
-                    return new Object[]{ new EncodedReadHandle(reader.get(), reader) };
+                    return new Object[]{ new ReadHandle(reader.get(), reader, false) };
                 }
                 case "rb" -> {
                     var reader = getFileSystem().openForRead(path);
@@ -381,7 +379,7 @@ public class FSAPI implements ILuaAPI {
                 }
                 case "w" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
-                    return new Object[]{ new EncodedWriteHandle(writer.get(), writer) };
+                    return new Object[]{ WriteHandle.of(writer.get(), writer, false, true) };
                 }
                 case "wb" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.WRITE_OPTIONS);
@@ -389,7 +387,7 @@ public class FSAPI implements ILuaAPI {
                 }
                 case "a" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);
-                    return new Object[]{ new EncodedWriteHandle(writer.get(), writer) };
+                    return new Object[]{ WriteHandle.of(writer.get(), writer, false, false) };
                 }
                 case "ab" -> {
                     var writer = getFileSystem().openForWrite(path, MountConstants.APPEND_OPTIONS);

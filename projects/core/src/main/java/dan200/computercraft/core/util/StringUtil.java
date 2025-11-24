@@ -125,15 +125,45 @@ public final class StringUtil {
      * @param text The text to decode.
      * @return The decoded text.
      */
+    /**
+     * Decodes a string that may contain mixed Latin-1 and UTF-8 encoded text.
+     * This treats the input string as a sequence of bytes (0-255), and attempts to decode valid UTF-8 sequences.
+     * Invalid UTF-8 sequences are left as-is (as Latin-1 characters).
+     *
+     * @param text The text to decode.
+     * @return The decoded text.
+     */
     public static String decodeMixedUTF8(String text) {
+        return decodeMixedUTF8WithColors(text, "", "").text();
+    }
+
+    public record BlitParts(String text, String textColour, String backgroundColour) {}
+
+    /**
+     * Same as {@link #decodeMixedUTF8(String)} but for blit strings.
+     * It assumes text, textColour and backgroundColour have the same length.
+     * When a UTF-8 sequence is collapsed into one character, the colours of the first byte are used.
+     */
+    public static BlitParts decodeMixedUTF8WithColors(String text, String textColour, String backgroundColour) {
+        // Check if we are doing plain text or blit
+        boolean doColors = !textColour.isEmpty();
         int len = text.length();
-        StringBuilder sb = new StringBuilder(len);
+        if (doColors && (textColour.length() != len || backgroundColour.length() != len)) {
+            return new BlitParts(text, textColour, backgroundColour);
+        }
+
+        StringBuilder sbText = new StringBuilder(len);
+        // Always initialize to avoid NullAway errors, even if unused.
+        StringBuilder sbTextColour = new StringBuilder(doColors ? len : 0);
+        StringBuilder sbBackColour = new StringBuilder(doColors ? len : 0);
 
         for (int i = 0; i < len; i++) {
             char c = text.charAt(i);
-            // Check if this is a start of a UTF-8 sequence (0xC0 - 0xF7, technically 0xC2 for 2 bytes)
-            // We assume the input string characters are in range 0-255.
-            if (c >= 0xC0 && c <= 0xF7 && i + 1 < len) {
+            char tc = doColors ? textColour.charAt(i) : ' ';
+            char bc = doColors ? backgroundColour.charAt(i) : ' ';
+
+            // Explicit cast to int to avoid any confusion
+            if ((int) c >= 192 && (int) c <= 247 && i + 1 < len) {
                 int b1 = c;
                 int sequenceLen = 0;
                 if ((b1 & 0xE0) == 0xC0) sequenceLen = 2;
@@ -141,7 +171,6 @@ public final class StringUtil {
                 else if ((b1 & 0xF8) == 0xF0) sequenceLen = 4;
 
                 if (sequenceLen > 0 && i + sequenceLen <= len) {
-                    // Check continuation bytes
                     boolean valid = true;
                     byte[] bytes = new byte[sequenceLen];
                     bytes[0] = (byte) b1;
@@ -157,17 +186,29 @@ public final class StringUtil {
 
                     if (valid) {
                         try {
-                            sb.append(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
-                            i += sequenceLen - 1;
-                            continue;
-                        } catch (Exception ignored) {
-                            // Fallback to append original char
+                            String decoded = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                            // Check if decoding produced REPLACEMENT CHARACTER (meaning invalid UTF-8 despite checks)
+                            if (decoded.indexOf('\uFFFD') == -1) {
+                                sbText.append(decoded);
+                                if (doColors) {
+                                    sbTextColour.append(tc);
+                                    sbBackColour.append(bc);
+                                }
+                                i += sequenceLen - 1;
+                                continue;
+                            }
+                        } catch (Exception e) {
+                            // Ignore
                         }
                     }
                 }
             }
-            sb.append(c);
+            sbText.append(c);
+            if (doColors) {
+                sbTextColour.append(tc);
+                sbBackColour.append(bc);
+            }
         }
-        return sb.toString();
+        return new BlitParts(sbText.toString(), doColors ? sbTextColour.toString() : "", doColors ? sbBackColour.toString() : "");
     }
 }

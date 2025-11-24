@@ -264,10 +264,25 @@ public abstract class TermMethods {
             throw new LuaException("Arguments must be the same length");
         }
 
+        // Convert buffers to strings for processing
+        byte[] textColourBytes = new byte[textColourValue.remaining()];
+        textColourValue.get(textColourBytes);
+        String textColourStr = new String(textColourBytes, java.nio.charset.StandardCharsets.ISO_8859_1);
+
+        byte[] backgroundColourBytes = new byte[backgroundColourValue.remaining()];
+        backgroundColourValue.get(backgroundColourBytes);
+        String backgroundColourStr = new String(backgroundColourBytes, java.nio.charset.StandardCharsets.ISO_8859_1);
+
+        // Decode mixed UTF-8
+        var parts = dan200.computercraft.core.util.StringUtil.decodeMixedUTF8WithColors(textValue, textColourStr, backgroundColourStr);
+
         var terminal = getTerminal();
         synchronized (terminal) {
-            terminal.blit(textValue, textColourValue, backgroundColourValue);
-            terminal.setCursorPos(terminal.getCursorX() + textValue.length(), terminal.getCursorY());
+            terminal.blit(parts.text(),
+                ByteBuffer.wrap(parts.textColour().getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                ByteBuffer.wrap(parts.backgroundColour().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            );
+            terminal.setCursorPos(terminal.getCursorX() + parts.text().length(), terminal.getCursorY());
         }
     }
 
