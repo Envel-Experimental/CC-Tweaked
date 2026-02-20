@@ -30,7 +30,8 @@ import java.util.UUID;
 /**
  * The default concrete implementation of {@link ServerInputHandler}.
  * <p>
- * This keeps track of the current key and mouse state, and releases them when the container is closed.
+ * This keeps track of the current key and mouse state, and releases them when
+ * the container is closed.
  *
  * @param <T> The type of container this server input belongs to.
  */
@@ -53,35 +54,48 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void keyDown(int key, boolean repeat) {
+        if (owner.isReadOnly())
+            return;
         keysDown.add(key);
         ComputerEvents.keyDown(owner.getComputer(), key, repeat);
     }
 
     @Override
     public void keyUp(int key) {
+        if (owner.isReadOnly())
+            return;
         keysDown.remove(key);
         ComputerEvents.keyUp(owner.getComputer(), key);
     }
 
     @Override
     public void charTyped(byte chr) {
-        if (StringUtil.isTypableChar(chr)) ComputerEvents.charTyped(owner.getComputer(), chr);
+        if (owner.isReadOnly())
+            return;
+        if (StringUtil.isTypableChar(chr))
+            ComputerEvents.charTyped(owner.getComputer(), chr);
     }
 
     @Override
     public void paste(ByteBuffer contents) {
-        if (contents.remaining() > 0 && isValidClipboard(contents)) ComputerEvents.paste(owner.getComputer(), contents);
+        if (owner.isReadOnly())
+            return;
+        if (contents.remaining() > 0 && isValidClipboard(contents))
+            ComputerEvents.paste(owner.getComputer(), contents);
     }
 
     private static boolean isValidClipboard(ByteBuffer buffer) {
         for (int i = buffer.position(), max = buffer.limit(); i < max; i++) {
-            if (!StringUtil.isTypableChar(buffer.get(i))) return false;
+            if (!StringUtil.isTypableChar(buffer.get(i)))
+                return false;
         }
         return true;
     }
 
     @Override
     public void mouseClick(int button, int x, int y) {
+        if (owner.isReadOnly())
+            return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = button;
@@ -91,6 +105,8 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseUp(int button, int x, int y) {
+        if (owner.isReadOnly())
+            return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = -1;
@@ -100,6 +116,8 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseDrag(int button, int x, int y) {
+        if (owner.isReadOnly())
+            return;
         lastMouseX = x;
         lastMouseY = y;
         lastMouseDown = button;
@@ -109,6 +127,8 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void mouseScroll(int direction, int x, int y) {
+        if (owner.isReadOnly())
+            return;
         lastMouseX = x;
         lastMouseY = y;
 
@@ -117,26 +137,36 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
 
     @Override
     public void terminate() {
+        if (owner.isReadOnly())
+            return;
         owner.getComputer().queueEvent("terminate");
     }
 
     @Override
     public void shutdown() {
+        if (owner.isReadOnly())
+            return;
         owner.getComputer().shutdown();
     }
 
     @Override
     public void turnOn() {
+        if (owner.isReadOnly())
+            return;
         owner.getComputer().turnOn();
     }
 
     @Override
     public void reboot() {
+        if (owner.isReadOnly())
+            return;
         owner.getComputer().reboot();
     }
 
     @Override
     public void startUpload(UUID uuid, List<FileUpload> files) {
+        if (owner.isReadOnly())
+            return;
         toUploadId = uuid;
         toUpload = files;
     }
@@ -148,7 +178,8 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
             return;
         }
 
-        for (var slice : slices) slice.apply(toUpload);
+        for (var slice : slices)
+            slice.apply(toUpload);
     }
 
     @Override
@@ -170,18 +201,21 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
         for (var upload : toUpload) {
             if (!upload.checksumMatches()) {
                 LOG.warn("Checksum failed to match for {}.", upload.getName());
-                return UploadResultMessage.error(owner, Component.translatable("gui.computercraft.upload.failed.corrupted"));
+                return UploadResultMessage.error(owner,
+                        Component.translatable("gui.computercraft.upload.failed.corrupted"));
             }
         }
 
-        computer.queueEvent(TransferredFiles.EVENT, new Object[]{
-            new TransferredFiles(
-                toUpload.stream().map(x -> new TransferredFile(x.getName(), new ByteBufferChannel(x.getBytes()))).toList(),
-                () -> {
-                    if (player.isAlive() && player.containerMenu == owner) {
-                        ServerNetworking.sendToPlayer(UploadResultMessage.consumed(owner), player);
-                    }
-                }),
+        computer.queueEvent(TransferredFiles.EVENT, new Object[] {
+                new TransferredFiles(
+                        toUpload.stream()
+                                .map(x -> new TransferredFile(x.getName(), new ByteBufferChannel(x.getBytes())))
+                                .toList(),
+                        () -> {
+                            if (player.isAlive() && player.containerMenu == owner) {
+                                ServerNetworking.sendToPlayer(UploadResultMessage.consumed(owner), player);
+                            }
+                        }),
         });
         return UploadResultMessage.queued(owner);
     }
@@ -189,9 +223,11 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
     public void close() {
         var computer = owner.getComputer();
         var keys = keysDown.iterator();
-        while (keys.hasNext()) ComputerEvents.keyUp(computer, keys.nextInt());
+        while (keys.hasNext())
+            ComputerEvents.keyUp(computer, keys.nextInt());
 
-        if (lastMouseDown != -1) ComputerEvents.mouseUp(computer, lastMouseDown, lastMouseX, lastMouseY);
+        if (lastMouseDown != -1)
+            ComputerEvents.mouseUp(computer, lastMouseDown, lastMouseX, lastMouseY);
 
         keysDown.clear();
         lastMouseDown = -1;

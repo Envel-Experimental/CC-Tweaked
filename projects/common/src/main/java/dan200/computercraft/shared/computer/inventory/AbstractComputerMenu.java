@@ -39,11 +39,11 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
     private final @Nullable NetworkedTerminal terminal;
 
     private final ItemStack displayStack;
+    private boolean readOnly = false;
 
     public AbstractComputerMenu(
-        MenuType<? extends AbstractComputerMenu> type, int id, Predicate<Player> canUse,
-        ComputerFamily family, @Nullable ServerComputer computer, @Nullable ComputerContainerData containerData
-    ) {
+            MenuType<? extends AbstractComputerMenu> type, int id, Predicate<Player> canUse,
+            ComputerFamily family, @Nullable ServerComputer computer, @Nullable ComputerContainerData containerData) {
         super(type, id);
         this.canUse = canUse;
         this.family = family;
@@ -76,19 +76,22 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
 
     @Override
     public ServerComputer getComputer() {
-        if (computer == null) throw new UnsupportedOperationException("Cannot access server computer on the client");
+        if (computer == null)
+            throw new UnsupportedOperationException("Cannot access server computer on the client");
         return computer;
     }
 
     @Override
     public ServerInputHandler getInput() {
-        if (input == null) throw new UnsupportedOperationException("Cannot access server computer on the client");
+        if (input == null)
+            throw new UnsupportedOperationException("Cannot access server computer on the client");
         return input;
     }
 
     @Override
     public void updateTerminal(TerminalState state) {
-        if (terminal == null) throw new UnsupportedOperationException("Cannot update terminal on the server");
+        if (terminal == null)
+            throw new UnsupportedOperationException("Cannot update terminal on the server");
         state.apply(terminal);
     }
 
@@ -99,14 +102,18 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
      * @throws IllegalStateException When accessed on the server.
      */
     public Terminal getTerminal() {
-        if (terminal == null) throw new IllegalStateException("Cannot update terminal on the server");
+        if (terminal == null)
+            throw new IllegalStateException("Cannot update terminal on the server");
         return terminal;
     }
 
     @Override
     public void removed(Player player) {
         super.removed(player);
-        if (input != null) input.close();
+        if (input != null)
+            input.close();
+        if (computer != null)
+            computer.removeLock(player);
     }
 
     /**
@@ -116,5 +123,14 @@ public abstract class AbstractComputerMenu extends AbstractContainerMenu impleme
      */
     public ItemStack getDisplayStack() {
         return displayStack;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(boolean readOnly) {
+        this.readOnly = readOnly;
     }
 }

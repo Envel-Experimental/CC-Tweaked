@@ -67,13 +67,17 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
 
     public ItemStack create(int id, @Nullable String label, int colour, @Nullable UpgradeData<IPocketUpgrade> upgrade) {
         var result = new ItemStack(this);
-        if (id >= 0) result.getOrCreateTag().putInt(NBT_ID, id);
-        if (label != null) result.setHoverName(Component.literal(label));
+        if (id >= 0)
+            result.getOrCreateTag().putInt(NBT_ID, id);
+        if (label != null)
+            result.setHoverName(Component.literal(label));
         if (upgrade != null) {
             result.getOrCreateTag().putString(NBT_UPGRADE, upgrade.upgrade().getUpgradeID().toString());
-            if (!upgrade.data().isEmpty()) result.getOrCreateTag().put(NBT_UPGRADE_INFO, upgrade.data().copy());
+            if (!upgrade.data().isEmpty())
+                result.getOrCreateTag().put(NBT_UPGRADE_INFO, upgrade.data().copy());
         }
-        if (colour != -1) result.getOrCreateTag().putInt(NBT_COLOUR, colour);
+        if (colour != -1)
+            result.getOrCreateTag().putInt(NBT_COLOUR, colour);
         return result;
     }
 
@@ -82,13 +86,15 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
      *
      * @param stack   The current pocket computer stack.
      * @param holder  The entity holding the pocket item.
-     * @param passive If set, the pocket computer will not be created if it doesn't exist, and will not be kept alive.
+     * @param passive If set, the pocket computer will not be created if it doesn't
+     *                exist, and will not be kept alive.
      */
     public void tick(ItemStack stack, PocketHolder holder, boolean passive) {
         PocketBrain brain;
         if (passive) {
             var computer = getServerComputer(holder.level().getServer(), stack);
-            if (computer == null) return;
+            if (computer == null)
+                return;
             brain = computer.getBrain();
         } else {
             brain = getOrCreateBrain(holder.level(), holder, stack);
@@ -97,9 +103,11 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
 
         // Update pocket upgrade
         var upgrade = brain.getUpgrade();
-        if (upgrade != null) upgrade.upgrade().update(brain, brain.computer().getPeripheral(ComputerSide.BACK));
+        if (upgrade != null)
+            upgrade.upgrade().update(brain, brain.computer().getPeripheral(ComputerSide.BACK));
 
-        if (updateItem(stack, brain)) holder.setChanged();
+        if (updateItem(stack, brain))
+            holder.setChanged();
     }
 
     /**
@@ -142,12 +150,15 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
 
     @Override
     public void inventoryTick(ItemStack stack, Level world, Entity entity, int compartmentSlot, boolean selected) {
-        // This (in vanilla at least) is only called for players. Don't bother to handle other entities.
-        if (world.isClientSide || !(entity instanceof ServerPlayer player)) return;
+        // This (in vanilla at least) is only called for players. Don't bother to handle
+        // other entities.
+        if (world.isClientSide || !(entity instanceof ServerPlayer player))
+            return;
 
         // Find the actual slot the item exists in, aborting if it can't be found.
         var slot = InventoryUtil.getInventorySlotFromCompartment(player, compartmentSlot, stack);
-        if (slot < 0) return;
+        if (slot < 0)
+            return;
 
         // If we're in the inventory, create a computer and keep it alive.
         tick(stack, new PocketHolder.PlayerHolder(player, slot), false);
@@ -156,9 +167,11 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
     @ForgeOverride
     public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
         var level = entity.level();
-        if (level.isClientSide || level.getServer() == null) return false;
+        if (level.isClientSide || level.getServer() == null)
+            return false;
 
-        // If we're an item entity, tick an already existing computer (as to update the position), but do not keep the
+        // If we're an item entity, tick an already existing computer (as to update the
+        // position), but do not keep the
         // computer alive.
         tick(stack, new PocketHolder.ItemEntityHolder(entity), true);
 
@@ -183,11 +196,13 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
             var upgrade = getUpgrade(stack);
             if (upgrade != null) {
                 stop = upgrade.onRightClick(world, brain, computer.getPeripheral(ComputerSide.BACK));
-                // Sync back just in case. We don't need to setChanged, as we'll return the item anyway.
+                // Sync back just in case. We don't need to setChanged, as we'll return the item
+                // anyway.
                 updateItem(stack, brain);
             }
 
-            if (!stop) openImpl(player, stack, holder, hand == InteractionHand.OFF_HAND, computer);
+            if (!stop)
+                openImpl(player, stack, holder, hand == InteractionHand.OFF_HAND, computer);
         }
         return new InteractionResultHolder<>(InteractionResult.sidedSuccess(world.isClientSide), stack);
     }
@@ -198,7 +213,8 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
      * @param player       The player to show the menu for.
      * @param stack        The pocket computer stack.
      * @param holder       The holder of the pocket computer.
-     * @param isTypingOnly Open the off-hand pocket screen (only supporting typing, with no visible terminal).
+     * @param isTypingOnly Open the off-hand pocket screen (only supporting typing,
+     *                     with no visible terminal).
      */
     public void open(Player player, ItemStack stack, PocketHolder holder, boolean isTypingOnly) {
         var brain = getOrCreateBrain(holder.level(), holder, stack);
@@ -207,12 +223,23 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
         openImpl(player, stack, holder, isTypingOnly, computer);
     }
 
-    private static void openImpl(Player player, ItemStack stack, PocketHolder holder, boolean isTypingOnly, ServerComputer computer) {
-        PlatformHelper.get().openMenu(player, stack.getHoverName(), (id, inventory, entity) -> new ComputerMenuWithoutInventory(
-            isTypingOnly ? ModRegistry.Menus.POCKET_COMPUTER_NO_TERM.get() : ModRegistry.Menus.COMPUTER.get(), id, inventory,
-            p -> holder.isValid(computer),
-            computer
-        ), new ComputerContainerData(computer, stack));
+    private static void openImpl(Player player, ItemStack stack, PocketHolder holder, boolean isTypingOnly,
+            ServerComputer computer) {
+        PlatformHelper.get().openMenu(player, stack.getHoverName(), (id, inventory, entity) -> {
+            var menu = new ComputerMenuWithoutInventory(
+                    isTypingOnly ? ModRegistry.Menus.POCKET_COMPUTER_NO_TERM.get() : ModRegistry.Menus.COMPUTER.get(),
+                    id, inventory,
+                    p -> holder.isValid(computer),
+                    computer);
+            if (!computer.tryLock(player)) {
+                menu.setReadOnly(true);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    serverPlayer.displayClientMessage(
+                            Component.literal("Busy: Read only").withStyle(ChatFormatting.RED), true);
+                }
+            }
+            return menu;
+        }, new ComputerContainerData(computer, stack));
     }
 
     @Override
@@ -221,13 +248,11 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
         var upgrade = getUpgrade(stack);
         if (upgrade != null) {
             return Component.translatable(baseString + ".upgraded",
-                Component.translatable(upgrade.getUnlocalisedAdjective())
-            );
+                    Component.translatable(upgrade.getUnlocalisedAdjective()));
         } else {
             return super.getName(stack);
         }
     }
-
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> list, TooltipFlag flag) {
@@ -235,7 +260,7 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
             var id = getComputerID(stack);
             if (id >= 0) {
                 list.add(Component.translatable("gui.computercraft.tooltip.computer_id", id)
-                    .withStyle(ChatFormatting.GRAY));
+                        .withStyle(ChatFormatting.GRAY));
             }
         }
     }
@@ -248,7 +273,8 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
             // If we're a non-vanilla, non-CC upgrade then return whichever mod this upgrade
             // belongs to.
             var mod = PocketUpgrades.instance().getOwner(upgrade);
-            if (mod != null && !mod.equals(ComputerCraftAPI.MOD_ID)) return mod;
+            if (mod != null && !mod.equals(ComputerCraftAPI.MOD_ID))
+                return mod;
         }
 
         return ComputerCraftAPI.MOD_ID;
@@ -272,16 +298,16 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
         }
 
         var brain = new PocketBrain(
-            holder, getUpgradeWithData(stack), getColour(stack),
-            ServerComputer.properties(getComputerID(stack), getFamily()).label(getLabel(stack))
-        );
+                holder, getUpgradeWithData(stack), getColour(stack),
+                ServerComputer.properties(getComputerID(stack), getFamily()).label(getLabel(stack)));
         var computer = brain.computer();
 
         var tag = stack.getOrCreateTag();
         tag.putInt(NBT_SESSION, registry.getSessionID());
         tag.putUUID(NBT_INSTANCE, computer.register());
 
-        if (isMarkedOn(stack)) computer.turnOn();
+        if (isMarkedOn(stack))
+            computer.turnOn();
 
         updateItem(stack, brain);
 
@@ -292,7 +318,7 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
 
     public static boolean isServerComputer(ServerComputer computer, ItemStack stack) {
         return stack.getItem() instanceof PocketComputerItem
-            && getServerComputer(computer.getLevel().getServer(), stack) == computer;
+                && getServerComputer(computer.getLevel().getServer(), stack) == computer;
     }
 
     @Nullable
@@ -308,16 +334,21 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
     @Override
     public void onCraftedBy(ItemStack stack, Level level, Player player) {
         var tag = stack.getTag();
-        if (tag == null) return;
+        if (tag == null)
+            return;
 
-        // Normally we treat the computer instance as the source of truth, and copy the computer's state back to the
-        // item. However, if we've just crafted the computer with an upgrade, we should sync the other way, and update
+        // Normally we treat the computer instance as the source of truth, and copy the
+        // computer's state back to the
+        // item. However, if we've just crafted the computer with an upgrade, we should
+        // sync the other way, and update
         // the computer.
         var server = level.getServer();
-        if (server == null) return;
+        if (server == null)
+            return;
 
         var computer = getServerComputer(server, stack);
-        if (computer == null) return;
+        if (computer == null)
+            return;
 
         var brain = computer.getBrain();
         brain.setUpgrade(getUpgradeWithData(stack));
@@ -342,9 +373,8 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
     @Override
     public ItemStack changeItem(ItemStack stack, Item newItem) {
         return newItem instanceof PocketComputerItem pocket ? pocket.create(
-            getComputerID(stack), getLabel(stack), getColour(stack),
-            getUpgradeWithData(stack)
-        ) : ItemStack.EMPTY;
+                getComputerID(stack), getLabel(stack), getColour(stack),
+                getUpgradeWithData(stack)) : ItemStack.EMPTY;
     }
 
     public static @Nullable UUID getInstanceID(ItemStack stack) {
@@ -364,13 +394,15 @@ public class PocketComputerItem extends Item implements IComputerItem, IColoured
 
     public static @Nullable IPocketUpgrade getUpgrade(ItemStack stack) {
         var compound = stack.getTag();
-        if (compound == null || !compound.contains(NBT_UPGRADE)) return null;
+        if (compound == null || !compound.contains(NBT_UPGRADE))
+            return null;
         return PocketUpgrades.instance().get(compound.getString(NBT_UPGRADE));
     }
 
     public static @Nullable UpgradeData<IPocketUpgrade> getUpgradeWithData(ItemStack stack) {
         var compound = stack.getTag();
-        if (compound == null || !compound.contains(NBT_UPGRADE)) return null;
+        if (compound == null || !compound.contains(NBT_UPGRADE))
+            return null;
         var upgrade = PocketUpgrades.instance().get(compound.getString(NBT_UPGRADE));
         return upgrade == null ? null : UpgradeData.of(upgrade, NBTUtil.getCompoundOrEmpty(compound, NBT_UPGRADE_INFO));
     }
