@@ -8,6 +8,7 @@ import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.component.AdminComputer;
 import dan200.computercraft.api.component.ComputerComponent;
 import dan200.computercraft.api.component.ComputerComponents;
+import dan200.computercraft.shared.computer.apis.RestrictedCommandAPI;
 import dan200.computercraft.api.filesystem.WritableMount;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.WorkMonitor;
@@ -108,6 +109,9 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
         if (family == ComputerFamily.COMMAND) {
             properties.addComponent(ComputerComponents.ADMIN_COMPUTER, new AdminComputer() {
             });
+        }
+        if (family == ComputerFamily.ADVANCED) {
+            properties.addComponent(RestrictedCommandAPI.IS_ADVANCED, true);
         }
         var components = Map.copyOf(properties.components);
 

@@ -26,6 +26,7 @@ import dan200.computercraft.shared.common.ClearColourRecipe;
 import dan200.computercraft.shared.common.ColourableRecipe;
 import dan200.computercraft.shared.common.DefaultBundledRedstoneProvider;
 import dan200.computercraft.shared.computer.apis.CommandAPI;
+import dan200.computercraft.shared.computer.apis.RestrictedCommandAPI;
 import dan200.computercraft.shared.computer.blocks.CommandComputerBlock;
 import dan200.computercraft.shared.computer.blocks.ComputerBlock;
 import dan200.computercraft.shared.computer.blocks.ComputerBlockEntity;
@@ -480,7 +481,8 @@ public final class ModRegistry {
 
         ComputerCraftAPI.registerAPIFactory(computer -> {
             var admin = computer.getComponent(ComputerComponents.ADMIN_COMPUTER);
-            return admin == null ? null : new CommandAPI(computer, admin);
+            if (admin != null) return new CommandAPI(computer, admin);
+            return computer.getComponent(RestrictedCommandAPI.IS_ADVANCED) != null ? new RestrictedCommandAPI(computer) : null;
         });
 
         VanillaDetailRegistries.ITEM_STACK.addProvider(ItemDetails::fill);
