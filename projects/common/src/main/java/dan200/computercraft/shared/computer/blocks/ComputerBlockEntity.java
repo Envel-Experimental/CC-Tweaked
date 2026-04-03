@@ -25,16 +25,16 @@ import org.jspecify.annotations.Nullable;
 public class ComputerBlockEntity extends AbstractComputerBlockEntity {
     private @Nullable IPeripheral peripheral;
 
-    public ComputerBlockEntity(BlockEntityType<? extends ComputerBlockEntity> type, BlockPos pos, BlockState state, ComputerFamily family) {
+    public ComputerBlockEntity(BlockEntityType<? extends ComputerBlockEntity> type, BlockPos pos, BlockState state,
+            ComputerFamily family) {
         super(type, pos, state, family);
     }
 
     @Override
     protected ServerComputer createComputer(int id) {
         return new ServerComputer((ServerLevel) getLevel(), getBlockPos(), ServerComputer.properties(id, getFamily())
-            .label(getLabel())
-            .terminalSize(ConfigSpec.computerTermWidth.get(), ConfigSpec.computerTermHeight.get())
-        );
+                .label(getLabel())
+                .terminalSize(ConfigSpec.computerTermWidth.get(), ConfigSpec.computerTermHeight.get()));
     }
 
     protected boolean isUsableByPlayer(Player player) {
@@ -50,27 +50,42 @@ public class ComputerBlockEntity extends AbstractComputerBlockEntity {
     protected void updateBlockState(ComputerState newState) {
         var existing = getBlockState();
         if (existing.getValue(ComputerBlock.STATE) != newState) {
-            getLevel().setBlock(getBlockPos(), existing.setValue(ComputerBlock.STATE, newState), ComputerBlock.UPDATE_CLIENTS);
+            getLevel().setBlock(getBlockPos(), existing.setValue(ComputerBlock.STATE, newState),
+                    ComputerBlock.UPDATE_CLIENTS);
         }
     }
 
     @Override
     protected ComputerSide remapLocalSide(ComputerSide localSide) {
-        // For legacy reasons, computers invert the meaning of "left" and "right". A computer's front is facing
+        // For legacy reasons, computers invert the meaning of "left" and "right". A
+        // computer's front is facing
         // towards you, but a turtle's front is facing the other way.
-        if (localSide == ComputerSide.RIGHT) return ComputerSide.LEFT;
-        if (localSide == ComputerSide.LEFT) return ComputerSide.RIGHT;
+        if (localSide == ComputerSide.RIGHT)
+            return ComputerSide.LEFT;
+        if (localSide == ComputerSide.LEFT)
+            return ComputerSide.RIGHT;
         return localSide;
     }
 
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return new ComputerMenuWithoutInventory(ModRegistry.Menus.COMPUTER.get(), id, inventory, this::isUsableByPlayer, createServerComputer());
+        var computer = createServerComputer();
+        var menu = new ComputerMenuWithoutInventory(ModRegistry.Menus.COMPUTER.get(), id, inventory,
+                this::isUsableByPlayer, computer);
+        if (!computer.tryLock(player)) {
+            menu.setReadOnly(true);
+            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+                serverPlayer.displayClientMessage(net.minecraft.network.chat.Component.literal("Busy: Read only")
+                        .withStyle(net.minecraft.ChatFormatting.RED), true);
+            }
+        }
+        return menu;
     }
 
     public IPeripheral peripheral() {
-        if (peripheral != null) return peripheral;
+        if (peripheral != null)
+            return peripheral;
         return peripheral = new ComputerPeripheral("computer", this);
     }
 }

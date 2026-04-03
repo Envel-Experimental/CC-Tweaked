@@ -33,6 +33,13 @@ public interface ComputerEnvironment {
     MetricsObserver getMetrics();
 
     /**
+     * Get the position of this computer.
+     *
+     * @return The position of this computer, as a 3-element array of {@code x}, {@code y}, {@code z}.
+     */
+    double @Nullable [] getComputerPosition();
+
+    /**
      * Construct the mount for this computer's user-writable data.
      *
      * @return The constructed mount or {@code null} if the mount could not be created.

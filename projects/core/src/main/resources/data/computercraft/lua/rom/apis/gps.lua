@@ -101,6 +101,13 @@ end
 function locate(_nTimeout, _bDebug)
     expect(1, _nTimeout, "number", "nil")
     expect(2, _bDebug, "boolean", "nil")
+
+    -- Magic GPS: Use the computer's actual position if available
+    if os.getComputerPosition then
+        local x, y, z = os.getComputerPosition()
+        if x ~= nil then return x, y, z end
+    end
+
     -- Let command computers use their magic fourth-wall-breaking special abilities
     if commands then
         return commands.getBlockPosition()

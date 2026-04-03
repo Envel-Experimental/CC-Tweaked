@@ -8,6 +8,7 @@ import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.component.AdminComputer;
 import dan200.computercraft.api.component.ComputerComponent;
 import dan200.computercraft.api.component.ComputerComponents;
+import dan200.computercraft.shared.computer.apis.RestrictedCommandAPI;
 import dan200.computercraft.api.filesystem.WritableMount;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.WorkMonitor;
@@ -38,7 +39,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class ServerComputer implements ComputerEnvironment, ComputerEvents.Receiver {
-    public static final ComputerComponent<MetricsObserver> METRICS = ComputerComponent.create("computercraft", "metrics");
+    public static final ComputerComponent<MetricsObserver> METRICS = ComputerComponent.create("computercraft",
+            "metrics");
 
     private final int instanceID;
     private final UUID instanceUUID = UUID.randomUUID();
@@ -54,6 +56,42 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     private final AtomicBoolean terminalChanged = new AtomicBoolean(false);
 
     private int ticksSincePing;
+    private @Nullable UUID activeUser = null;
+
+    public boolean tryLock(Player player) {
+        if (player.hasPermissions(2)) {
+            activeUser = player.getUUID();
+            return true;
+        }
+
+        var server = level.getServer();
+        if (server == null)
+            return false;
+
+        if (activeUser == null) {
+            activeUser = player.getUUID();
+            return true;
+        }
+
+        if (activeUser.equals(player.getUUID()))
+            return true;
+
+        var existingUser = server.getPlayerList().getPlayer(activeUser);
+        if (existingUser != null) {
+            if (existingUser.containerMenu instanceof ComputerMenu menu && menu.getComputer() == this) {
+                return false;
+            }
+        }
+
+        activeUser = player.getUUID();
+        return true;
+    }
+
+    public void removeLock(Player player) {
+        if (activeUser != null && activeUser.equals(player.getUUID())) {
+            activeUser = null;
+        }
+    }
 
     public ServerComputer(ServerLevel level, BlockPos position, Properties properties) {
         this.level = level;
@@ -62,13 +100,18 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
 
         var context = ServerContext.get(level.getServer());
         instanceID = context.registry().getUnusedInstanceID();
-        terminal = new NetworkedTerminal(properties.terminalWidth, properties.terminalHeight, family != ComputerFamily.NORMAL, this::markTerminalChanged);
+        // Force colour terminal on all computers
+        terminal = new NetworkedTerminal(properties.terminalWidth, properties.terminalHeight, true,
+                this::markTerminalChanged);
         metrics = context.metrics().createMetricObserver(this);
 
         properties.addComponent(METRICS, metrics);
         if (family == ComputerFamily.COMMAND) {
             properties.addComponent(ComputerComponents.ADMIN_COMPUTER, new AdminComputer() {
             });
+        }
+        if (family == ComputerFamily.ADVANCED) {
+            properties.addComponent(RestrictedCommandAPI.IS_ADVANCED, true);
         }
         var components = Map.copyOf(properties.components);
 
@@ -79,7 +122,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
         for (var factory : ApiFactories.getAll()) {
             var system = new ComputerSystem(this, computer.getAPIEnvironment(), components);
             var api = factory.create(system);
-            if (api == null) continue;
+            if (api == null)
+                continue;
 
             system.activate();
             computer.addApi(api, system);
@@ -98,6 +142,11 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
         return position;
     }
 
+    @Override
+    public double @Nullable [] getComputerPosition() {
+        return position == null ? null : new double[]{ position.getX(), position.getY(), position.getZ() };
+    }
+
     public final void setPosition(ServerLevel level, BlockPos pos) {
         this.level = level;
         position = pos.immutable();
@@ -110,7 +159,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     protected void tickServer() {
         ticksSincePing++;
         computer.tick();
-        if (terminalChanged.getAndSet(false)) onTerminalChanged();
+        if (terminalChanged.getAndSet(false))
+            onTerminalChanged();
     }
 
     protected void onTerminalChanged() {
@@ -130,7 +180,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     }
 
     /**
-     * Get a bitmask returning which sides on the computer have changed, resetting the internal state.
+     * Get a bitmask returning which sides on the computer have changed, resetting
+     * the internal state.
      *
      * @return What sides on the computer have changed.
      */
@@ -160,10 +211,11 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
      */
     public final boolean checkUsable(Player player) {
         return ServerContext.get(level.getServer()).registry().get(instanceUUID) == this
-            && getFamily().checkUsable(player);
+                && getFamily().checkUsable(player);
     }
 
-    private void sendToAllInteracting(Function<AbstractContainerMenu, NetworkMessage<ClientNetworkContext>> createPacket) {
+    private void sendToAllInteracting(
+            Function<AbstractContainerMenu, NetworkMessage<ClientNetworkContext>> createPacket) {
         var server = level.getServer();
 
         for (var player : server.getPlayerList().getPlayers()) {
@@ -174,6 +226,7 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     }
 
     protected void onRemoved() {
+        activeUser = null;
     }
 
     public final int getInstanceID() {
@@ -197,7 +250,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
     }
 
     public final ComputerState getState() {
-        if (!computer.isOn()) return ComputerState.OFF;
+        if (!computer.isOn())
+            return ComputerState.OFF;
         return computer.isBlinking() ? ComputerState.BLINKING : ComputerState.ON;
     }
 
@@ -268,7 +322,8 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
 
     @Override
     public final WritableMount createRootMount() {
-        return ComputerCraftAPI.createSaveDirMount(level.getServer(), "computer/" + computer.getID(), Config.computerSpaceLimit);
+        return ComputerCraftAPI.createSaveDirMount(level.getServer(), "computer/" + computer.getID(),
+                Config.computerSpaceLimit);
     }
 
     public static Properties properties(int computerID, ComputerFamily family) {
@@ -295,14 +350,16 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
         }
 
         public Properties terminalSize(int width, int height) {
-            if (width <= 0 || height <= 0) throw new IllegalArgumentException("Terminal size must be positive");
+            if (width <= 0 || height <= 0)
+                throw new IllegalArgumentException("Terminal size must be positive");
             this.terminalWidth = width;
             this.terminalHeight = height;
             return this;
         }
 
         public <T> Properties addComponent(ComputerComponent<T> component, T value) {
-            if (components.containsKey(component)) throw new IllegalArgumentException(component + " is already set");
+            if (components.containsKey(component))
+                throw new IllegalArgumentException(component + " is already set");
             components.put(component, value);
             return this;
         }

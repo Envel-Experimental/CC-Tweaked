@@ -62,7 +62,8 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
     private @Nullable IPeripheral peripheral;
     private @Nullable Runnable onMoved;
 
-    public TurtleBlockEntity(BlockEntityType<? extends TurtleBlockEntity> type, BlockPos pos, BlockState state, IntSupplier fuelLimit, ComputerFamily family) {
+    public TurtleBlockEntity(BlockEntityType<? extends TurtleBlockEntity> type, BlockPos pos, BlockState state,
+            IntSupplier fuelLimit, ComputerFamily family) {
         super(type, pos, state, family);
         this.fuelLimit = fuelLimit;
     }
@@ -73,18 +74,19 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
 
     @Override
     protected ServerComputer createComputer(int id) {
-        var computer = new ServerComputer((ServerLevel) getLevel(), getBlockPos(), ServerComputer.properties(id, getFamily())
-            .label(getLabel())
-            .terminalSize(Config.TURTLE_TERM_WIDTH, Config.TURTLE_TERM_HEIGHT)
-            .addComponent(ComputerComponents.TURTLE, brain)
-        );
+        var computer = new ServerComputer((ServerLevel) getLevel(), getBlockPos(),
+                ServerComputer.properties(id, getFamily())
+                        .label(getLabel())
+                        .terminalSize(Config.TURTLE_TERM_WIDTH, Config.TURTLE_TERM_HEIGHT)
+                        .addComponent(ComputerComponents.TURTLE, brain));
         brain.setupComputer(computer);
         return computer;
     }
 
     @Override
     protected void unload() {
-        if (!hasMoved()) super.unload();
+        if (!hasMoved())
+            super.unload();
     }
 
     @Override
@@ -98,7 +100,8 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
         brain.update();
         if (inventoryChanged) {
             var computer = getServerComputer();
-            if (computer != null) computer.queueEvent("turtle_inventory");
+            if (computer != null)
+                computer.queueEvent("turtle_inventory");
             inventoryChanged = false;
         }
     }
@@ -113,16 +116,19 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
 
     @Override
     public void neighborChanged(BlockPos neighbour) {
-        if (moveState == MoveState.NOT_MOVED) super.neighborChanged(neighbour);
+        if (moveState == MoveState.NOT_MOVED)
+            super.neighborChanged(neighbour);
     }
 
     public void notifyMoveStart() {
-        if (moveState == MoveState.NOT_MOVED) moveState = MoveState.IN_PROGRESS;
+        if (moveState == MoveState.NOT_MOVED)
+            moveState = MoveState.IN_PROGRESS;
     }
 
     public void notifyMoveEnd() {
         // MoveState.MOVED is final
-        if (moveState == MoveState.IN_PROGRESS) moveState = MoveState.NOT_MOVED;
+        if (moveState == MoveState.IN_PROGRESS)
+            moveState = MoveState.NOT_MOVED;
     }
 
     @Override
@@ -131,7 +137,8 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
 
         // Read inventory
         ContainerHelper.loadAllItems(nbt, inventory);
-        for (var i = 0; i < inventory.size(); i++) inventorySnapshot.set(i, inventory.get(i).copy());
+        for (var i = 0; i < inventory.size(); i++)
+            inventorySnapshot.set(i, inventory.get(i).copy());
 
         // Read state
         brain.readFromNBT(nbt);
@@ -159,7 +166,8 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
     }
 
     public void setDirection(Direction dir) {
-        if (dir.getAxis() == Direction.Axis.Y) dir = Direction.NORTH;
+        if (dir.getAxis() == Direction.Axis.Y)
+            dir = Direction.NORTH;
         getLevel().setBlockAndUpdate(worldPosition, getBlockState().setValue(TurtleBlock.FACING, dir));
 
         updateRedstone();
@@ -218,7 +226,8 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
 
         for (var slot = 0; slot < getContainerSize(); slot++) {
             var item = getItem(slot);
-            if (ItemStack.matches(item, inventorySnapshot.get(slot))) continue;
+            if (ItemStack.matches(item, inventorySnapshot.get(slot)))
+                continue;
 
             inventoryChanged = true;
             inventorySnapshot.set(slot, item.copy());
@@ -280,13 +289,16 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
 
         // Mark the other turtle as having moved, and so its peripheral is dead.
         copy.moveState = MoveState.MOVED;
-        if (onMoved != null) onMoved.run();
+        if (onMoved != null)
+            onMoved.run();
     }
 
     @Nullable
     public IPeripheral peripheral() {
-        if (hasMoved()) return null;
-        if (peripheral != null) return peripheral;
+        if (hasMoved())
+            return null;
+        if (peripheral != null)
+            return peripheral;
         return peripheral = new ComputerPeripheral("turtle", this);
     }
 
@@ -297,6 +309,15 @@ public class TurtleBlockEntity extends AbstractComputerBlockEntity implements Ba
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return TurtleMenu.ofBrain(id, inventory, brain);
+        var menu = TurtleMenu.ofBrain(id, inventory, brain);
+        var computer = createServerComputer();
+        if (computer != null && !computer.tryLock(player)) {
+            menu.setReadOnly(true);
+            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+                serverPlayer.displayClientMessage(net.minecraft.network.chat.Component.literal("Busy: Read only")
+                        .withStyle(net.minecraft.ChatFormatting.RED), true);
+            }
+        }
+        return menu;
     }
 }
