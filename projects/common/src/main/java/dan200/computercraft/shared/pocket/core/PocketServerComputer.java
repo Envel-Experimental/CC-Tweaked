@@ -52,6 +52,12 @@ public final class PocketServerComputer extends ServerComputer {
     }
 
     @Override
+    public double @Nullable [] getComputerPosition() {
+        var pos = brain.getPosition();
+        return new double[]{ pos.x, pos.y, pos.z };
+    }
+
+    @Override
     protected void tickServer() {
         super.tickServer();
 

@@ -142,6 +142,11 @@ public class ServerComputer implements ComputerEnvironment, ComputerEvents.Recei
         return position;
     }
 
+    @Override
+    public double @Nullable [] getComputerPosition() {
+        return position == null ? null : new double[]{ position.getX(), position.getY(), position.getZ() };
+    }
+
     public final void setPosition(ServerLevel level, BlockPos pos) {
         this.level = level;
         position = pos.immutable();

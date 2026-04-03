@@ -252,6 +252,21 @@ public class OSAPI implements ILuaAPI {
     }
 
     /**
+     * Returns the position of the computer in the world, or {@code nil} if it is unknown.
+     *
+     * @return The position of the computer.
+     * @cc.treturn number The x position of the computer.
+     * @cc.treturn number The y position of the computer.
+     * @cc.treturn number The z position of the computer.
+     */
+    @LuaFunction
+    public final Object @Nullable [] getComputerPosition() {
+        double @Nullable [] position = apiEnvironment.getComputerEnvironment().getComputerPosition();
+        if (position == null) return null;
+        return new Object[]{ position[0], position[1], position[2] };
+    }
+
+    /**
      * Set the label of this computer.
      *
      * @param label The new label. May be {@code nil} in order to clear it.
