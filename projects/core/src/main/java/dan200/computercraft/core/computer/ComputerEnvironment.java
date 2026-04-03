@@ -37,7 +37,9 @@ public interface ComputerEnvironment {
      *
      * @return The position of this computer, as a 3-element array of {@code x}, {@code y}, {@code z}.
      */
-    double @Nullable [] getComputerPosition();
+    default double @Nullable [] getComputerPosition() {
+        return null;
+    }
 
     /**
      * Construct the mount for this computer's user-writable data.
