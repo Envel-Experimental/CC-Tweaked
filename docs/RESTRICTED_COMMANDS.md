@@ -1,6 +1,9 @@
 # Restricted Commands API
 
-The `commands` API is now available on **Advanced Computers** (Gold) with restricted capabilities. This allows for safe administrative actions without full op permissions.
+The `commands` API is now available on **Advanced Computers** (Gold) with restricted capabilities. This allows for safe administrative actions without full op permissions. 
+
+> [!NOTE]
+> Commands executed through this API are **silenced** by default. They will return their output to Lua but will **NOT** appear in the Minecraft global chat or command logs, preventing chat "flooding".
 
 ## Available Commands
 

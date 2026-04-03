@@ -317,7 +317,7 @@ public class RestrictedCommandAPI implements ILuaAPI {
 
         @Override
         public boolean shouldInformAdmins() {
-            return computer.getLevel().getGameRules().getBoolean(GameRules.RULE_COMMANDBLOCKOUTPUT);
+            return false;
         }
     }
 
