@@ -6,6 +6,7 @@ package dan200.computercraft.client;
 
 import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.client.FabricComputerCraftAPIClient;
+import dan200.computercraft.client.font.CyrillicFontPatcher;
 import dan200.computercraft.client.model.CustomModelLoader;
 import dan200.computercraft.impl.Services;
 import dan200.computercraft.shared.ModRegistry;
@@ -15,7 +16,6 @@ import dan200.computercraft.shared.network.client.ClientNetworkContext;
 import dan200.computercraft.shared.peripheral.modem.wired.CableBlock;
 import dan200.computercraft.shared.platform.FabricConfigFile;
 import dan200.computercraft.shared.platform.FabricMessageType;
-import dan200.computercraft.client.font.CyrillicFontPatcher;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;

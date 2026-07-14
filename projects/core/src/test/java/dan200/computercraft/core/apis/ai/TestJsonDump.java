@@ -1,6 +1,7 @@
 package dan200.computercraft.core.apis.ai;
 
 import dan200.computercraft.core.AiConfig;
+
 import java.util.List;
 
 public class TestJsonDump {

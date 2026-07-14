@@ -97,13 +97,13 @@ class AiRateLimiterTest {
 
         latch.await(5, TimeUnit.SECONDS);
         assertEquals(threads, successCount.get(), "All concurrent requests should succeed under limit");
-        
+
         executor.shutdown();
     }
     @Test
     void memory_leak_prevention_on_eviction() throws Exception {
         var map = limiter.playerStatesForTest();
-        
+
         // Insert 10,000 unique UUIDs
         for (int i = 0; i < 10000; i++) {
             var uuid = UUID.randomUUID();

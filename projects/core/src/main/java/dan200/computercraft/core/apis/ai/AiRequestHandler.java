@@ -7,15 +7,12 @@ package dan200.computercraft.core.apis.ai;
 import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.core.apis.IAPIEnvironment;
 import dan200.computercraft.core.apis.http.NetworkUtils;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Handles the actual HTTP round-trip to the OpenAI-compatible endpoint.
@@ -108,7 +105,7 @@ public final class AiRequestHandler {
                             break;
                         }
                     }
-                    
+
                     onSuccess.accept(lastResponse);
                 } catch (Exception e) {
                     onError.accept(e);
@@ -295,7 +292,13 @@ public final class AiRequestHandler {
         }
     }
 
-    /** {@link AiConfig.ModerationFormat#CHAT}: sends a chat completion with a true/false prompt. */
+    /**
+     * {@link AiConfig.ModerationFormat#CHAT}: sends a chat completion with a true/false prompt.
+     *
+     * @param validation The validation configuration.
+     * @param response The AI response text.
+     * @return true if passed, false if blocked.
+     */
     private static boolean runChatModeration(AiConfig.ValidationConfig validation, String response) throws Exception {
         var prompt = validation.chatPrompt.replace("{response}", jsonEscape(response));
         var modelPart = validation.chatModel.isBlank() ? "" : "\"model\":\"" + jsonEscape(validation.chatModel) + "\",";
@@ -316,6 +319,10 @@ public final class AiRequestHandler {
     /**
      * {@link AiConfig.ModerationFormat#OPENAI_MODERATION}: sends a standard {@code /moderations} request.
      * Returns {@code true} (pass) when {@code results[0].flagged == false}.
+     *
+     * @param validation The validation configuration.
+     * @param response The AI response text.
+     * @return true if passed, false if blocked.
      */
     private static boolean runOpenAiModeration(AiConfig.ValidationConfig validation, String response) throws Exception {
         var body = "{\"input\":\"" + jsonEscape(response) + "\"}";
@@ -344,6 +351,10 @@ public final class AiRequestHandler {
     /**
      * Remove oldest non-system messages until estimated token count is within the context window.
      * Estimation: tokens ≈ characters / 3.5 (conservative for mixed language content).
+     *
+     * @param messages The input message list.
+     * @param maxTokens The maximum context tokens.
+     * @return A new list of truncated messages.
      */
     static List<AiAPI.AiMessage> truncateToContextWindow(List<AiAPI.AiMessage> messages, int maxTokens) {
         var list = new java.util.ArrayDeque<>(messages);
@@ -355,7 +366,12 @@ public final class AiRequestHandler {
         return new java.util.ArrayList<>(list);
     }
 
-    /** Extract the text content from a successful OpenAI-compatible response JSON. */
+    /**
+     * Extract the text content from a successful OpenAI-compatible response JSON.
+     *
+     * @param json The JSON response.
+     * @return The extracted content string.
+     */
     private static String extractContent(String json) {
         try {
             // Minimal JSON extraction — avoid pulling in a full JSON library dependency.

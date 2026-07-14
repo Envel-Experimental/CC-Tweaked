@@ -30,7 +30,7 @@ public class AiHintOverlay extends AbstractWidget {
 
         // Draw a dark semi-transparent background
         graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0xE0000000); // 88% opaque black
-        
+
         // Draw border
         graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFF5555FF);
 

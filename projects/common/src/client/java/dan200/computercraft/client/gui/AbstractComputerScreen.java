@@ -4,11 +4,10 @@
 
 package dan200.computercraft.client.gui;
 
+import dan200.computercraft.client.gui.widgets.AiHintOverlay;
 import dan200.computercraft.client.gui.widgets.ComputerSidebar;
 import dan200.computercraft.client.gui.widgets.DynamicImageButton;
 import dan200.computercraft.client.gui.widgets.TerminalWidget;
-import dan200.computercraft.client.gui.widgets.AiHintOverlay;
-import dan200.computercraft.client.gui.GuiSprites;
 import dan200.computercraft.client.network.ClientNetworking;
 import dan200.computercraft.core.terminal.Terminal;
 import dan200.computercraft.core.util.Nullability;
@@ -18,10 +17,7 @@ import dan200.computercraft.shared.computer.inventory.AbstractComputerMenu;
 import dan200.computercraft.shared.computer.upload.FileUpload;
 import dan200.computercraft.shared.computer.upload.UploadResult;
 import dan200.computercraft.shared.config.Config;
-import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.shared.network.server.UploadFileMessage;
-import dan200.computercraft.shared.network.server.AskAiErrorHintMessage;
-import dan200.computercraft.shared.network.NetworkMessages;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -98,7 +94,7 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
 
         terminal = addRenderableWidget(createTerminal());
         ComputerSidebar.addButtons(menu::isOn, input, this::addRenderableWidget, leftPos, topPos + sidebarYOffset);
-        
+
         // Add AI Hint Button below the default buttons
         int btnX = leftPos + 4; // 3 border + 1
         int btnY = topPos + sidebarYOffset + 35; // Position below TERMINATE button

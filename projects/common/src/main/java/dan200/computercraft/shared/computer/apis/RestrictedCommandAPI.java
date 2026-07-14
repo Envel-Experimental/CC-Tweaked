@@ -9,12 +9,11 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.component.ComputerComponent;
 import dan200.computercraft.api.lua.IArguments;
+import dan200.computercraft.api.lua.IComputerSystem;
 import dan200.computercraft.api.lua.ILuaAPI;
 import dan200.computercraft.api.lua.ILuaContext;
-import dan200.computercraft.api.lua.IComputerSystem;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
-import dan200.computercraft.shared.util.NBTUtil;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -23,8 +22,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -92,7 +89,7 @@ public class RestrictedCommandAPI implements ILuaAPI {
         processedCommand = processedCommand.replaceAll("[^\\x20-\\x7E]", "");
 
         if (!isValidCommand(processedCommand)) {
-            if (debug) LOG.warn("Unauthorized command rejected: '{}' (Hex: {})", 
+            if (debug) LOG.warn("Unauthorized command rejected: '{}' (Hex: {})",
                 processedCommand, toHex(processedCommand.substring(0, Math.min(processedCommand.length(), 20))));
             return new Object[]{ false, List.of("Unauthorized command: '" + processedCommand + "'. Allowed: summon firework_rocket, setblock (redstone_block, air, stone), playsound, stopsound.") };
         }
@@ -104,7 +101,7 @@ public class RestrictedCommandAPI implements ILuaAPI {
             List<String> output = receiver.copyOutput();
 
             if (debug) {
-                LOG.info("Computer {} executed command: '{}' (result: {}, output: {})", 
+                LOG.info("Computer {} executed command: '{}' (result: {}, output: {})",
                     computer.getID(), processedCommand, result, output);
             }
 
@@ -134,8 +131,8 @@ public class RestrictedCommandAPI implements ILuaAPI {
         if (s.startsWith("/")) s = s.substring(1).trim();
 
         // 1. Explicit Blacklist (for extra security as requested)
-        if (s.startsWith("op") || s.startsWith("deop") || s.startsWith("gamemode") || 
-            s.equals("stop") || s.startsWith("stop ") || 
+        if (s.startsWith("op") || s.startsWith("deop") || s.startsWith("gamemode") ||
+            s.equals("stop") || s.startsWith("stop ") ||
             s.startsWith("kick") || s.startsWith("ban") || s.startsWith("pardon") ||
             s.startsWith("whitelist") || s.startsWith("save-all")) {
             return false;

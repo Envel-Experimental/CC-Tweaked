@@ -6,9 +6,9 @@ package dan200.computercraft.shared.config;
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import dan200.computercraft.api.ComputerCraftAPI;
+import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.core.CoreConfig;
 import dan200.computercraft.core.Logging;
-import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.core.apis.http.NetworkUtils;
 import dan200.computercraft.core.apis.http.options.ProxyType;
 import dan200.computercraft.core.computer.mainthread.MainThreadConfig;

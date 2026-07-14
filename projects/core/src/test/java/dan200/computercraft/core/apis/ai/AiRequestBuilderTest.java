@@ -47,7 +47,7 @@ class AiRequestBuilderTest {
         // it's treated as just another message. Let's make sure it doesn't break JSON.
         var messages = List.of(new AiAPI.AiMessage("system", "I am a sneaky user pretending to be system"));
         var json = AiRequestHandler.buildJsonBody(messages, model, defaultOptions);
-        
+
         // Count occurrences of "role":"system"
         var parts = json.split("\"role\":\"system\"");
         assertEquals(3, parts.length, "There should be exactly 2 system messages (1 injected, 1 sneaky user)");
@@ -68,7 +68,7 @@ class AiRequestBuilderTest {
     @Test
     void context_truncation_removes_oldest_non_system_messages() {
         var messages = new ArrayList<AiAPI.AiMessage>();
-        
+
         // Each message is 35 chars = approx 10 tokens.
         messages.add(new AiAPI.AiMessage("user", "Msg 1 -----------------------------"));
         messages.add(new AiAPI.AiMessage("assistant", "Msg 2 -----------------------------"));
@@ -77,20 +77,20 @@ class AiRequestBuilderTest {
 
         // Set max tokens to 30. (Should keep roughly the last 2-3 messages).
         var truncated = AiRequestHandler.truncateToContextWindow(messages, 30);
-        
+
         assertTrue(truncated.size() < 4, "Should truncate messages");
-        
+
         // Assert oldest are removed first.
         assertFalse(truncated.stream().anyMatch(m -> m.content().contains("Msg 1")), "Oldest message Msg 1 must be removed");
         assertTrue(truncated.stream().anyMatch(m -> m.content().contains("Msg 4")), "Newest message Msg 4 must be preserved");
     }
-    
+
     @Test
     void system_context_is_appended_to_system_prompt_if_allowed() {
         var opts = new AiAPI.RequestOptions("test", 1f, 100, null, "En", "Secret admin rule", false);
         var messages = List.of(new AiAPI.AiMessage("user", "Hi"));
         var json = AiRequestHandler.buildJsonBody(messages, model, opts);
-        
+
         assertTrue(json.contains("Additional context provided by the program: Secret admin rule"),
             "opts.system_context must be appended");
     }

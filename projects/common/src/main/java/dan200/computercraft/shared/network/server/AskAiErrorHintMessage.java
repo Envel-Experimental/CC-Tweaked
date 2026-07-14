@@ -13,7 +13,6 @@ import dan200.computercraft.shared.network.MessageType;
 import dan200.computercraft.shared.network.NetworkMessages;
 import dan200.computercraft.shared.network.client.AiHintResponseMessage;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /**
@@ -46,12 +45,12 @@ public class AskAiErrorHintMessage extends ComputerServerMessage {
         // D7. Sanitize the string to remove malicious control chars
         var sanitized = errorMessage.replaceAll("\\p{Cc}", "").trim();
         if (sanitized.isBlank()) return;
-        
+
         var truncated = sanitized.length() > AiConfig.maxMessageChars ? sanitized.substring(0, AiConfig.maxMessageChars) : sanitized;
 
         var sender = context.getSender();
         if (sender == null) return;
-        
+
         var uuid = sender.getUUID();
         var limitResult = AiRateLimiter.INSTANCE.check(uuid);
         if (limitResult != AiRateLimiter.LimitResult.ALLOWED) {

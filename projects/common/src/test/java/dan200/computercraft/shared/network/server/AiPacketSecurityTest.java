@@ -8,15 +8,12 @@ import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.core.apis.ai.AiRateLimiter;
 import dan200.computercraft.shared.computer.core.ServerComputer;
 import dan200.computercraft.shared.computer.menu.ComputerMenu;
-import dan200.computercraft.shared.network.server.AskAiErrorHintMessage;
-import dan200.computercraft.shared.network.server.ServerNetworkContext;
 import dan200.computercraft.test.core.ReplaceUnderscoresDisplayNameGenerator;
 import net.minecraft.world.entity.player.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.UUID;
 
@@ -36,7 +33,7 @@ class AiPacketSecurityTest {
     void setUp() {
         AiConfig.enabled = true;
         AiConfig.errorHintEnabled = true;
-        
+
         context = mock(ServerNetworkContext.class);
         player = mock(Player.class);
         playerUuid = UUID.randomUUID();
@@ -51,7 +48,7 @@ class AiPacketSecurityTest {
         // Reset rate limiter state for tests
         AiRateLimiter.INSTANCE.playerStatesForTest().clear();
     }
-    
+
     @AfterEach
     void tearDown() {
         AiRateLimiter.INSTANCE.playerStatesForTest().clear();
@@ -60,10 +57,10 @@ class AiPacketSecurityTest {
     @Test
     void drops_silently_if_ai_disabled() {
         AiConfig.enabled = false;
-        
+
         message = new AskAiErrorHintMessage(menu, "bios.lua:14: Expected number");
         message.handle(context, menu);
-        
+
         // Assert rate limiter wasn't even touched
         assertEquals(0, AiRateLimiter.INSTANCE.playerStatesForTest().size());
     }
@@ -71,10 +68,10 @@ class AiPacketSecurityTest {
     @Test
     void drops_silently_if_hint_disabled() {
         AiConfig.errorHintEnabled = false;
-        
+
         message = new AskAiErrorHintMessage(menu, "bios.lua:14: Expected number");
         message.handle(context, menu);
-        
+
         // Assert rate limiter wasn't even touched
         assertEquals(0, AiRateLimiter.INSTANCE.playerStatesForTest().size());
     }
@@ -84,7 +81,7 @@ class AiPacketSecurityTest {
         // Just verify it doesn't crash or trigger rate limits before sanitization drops it if it's empty
         message = new AskAiErrorHintMessage(menu, "\u0000\u0001\u001F");
         message.handle(context, menu);
-        
+
         // Blank after sanitize -> drops
         assertEquals(0, AiRateLimiter.INSTANCE.playerStatesForTest().size());
     }
@@ -101,17 +98,17 @@ class AiPacketSecurityTest {
             else if (type == 2) sb.append("\uD83D\uDE00"); // Emoji 😀
             else sb.append("\u041F"); // Cyrillic П
         }
-        
+
         var massiveString = sb.toString();
-        
+
         // This should not crash, it should strip control chars and cap at max_message_chars
         message = new AskAiErrorHintMessage(menu, massiveString);
-        
+
         // Handle should either rate limit or queue up HTTP, but we are testing it doesn't OOM or throw
         assertDoesNotThrow(() -> {
             message.handle(context, menu);
         }, "Fuzzed packet payload should not crash the server handler");
-        
+
         // If it got through sanitization and wasn't empty, it would increment rate limit
         // We just care that it didn't crash.
     }
