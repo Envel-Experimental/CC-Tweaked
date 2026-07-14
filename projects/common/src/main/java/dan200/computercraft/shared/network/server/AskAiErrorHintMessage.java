@@ -71,7 +71,7 @@ public class AskAiErrorHintMessage extends ComputerServerMessage {
         AiRequestHandler.dispatchWithCallbacks(
             java.util.List.of(new AiAPI.AiMessage("user", "Explain this error: " + truncated)),
             model,
-            new AiAPI.RequestOptions(model.id(), 0.7f, AiConfig.maxResponseTokens, null, null, AiConfig.defaultResponseLanguage, true),
+            new AiAPI.RequestOptions(model.id(), 0.7f, AiConfig.maxResponseTokens, "", AiConfig.defaultResponseLanguage, "", true),
             response -> {
                 // S2C network response on success
                 ServerNetworking.sendToPlayer(new AiHintResponseMessage(response.trim()), sender);
