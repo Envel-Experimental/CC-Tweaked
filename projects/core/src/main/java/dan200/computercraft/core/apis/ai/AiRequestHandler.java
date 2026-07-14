@@ -130,7 +130,7 @@ public final class AiRequestHandler {
         AiAPI.RequestOptions options
     ) {
         var validation = AiConfig.validation;
-        var maxRetries = validation.enabled ? validation.maxRetries : 1;
+        var maxRetries = Math.max(AiConfig.maxNetworkRetries, validation.enabled ? validation.maxRetries : 1);
 
         String lastResponse = null;
         boolean validated = false;
@@ -143,7 +143,11 @@ public final class AiRequestHandler {
                     buildJsonBody(messages, model, options), 60
                 );
             } catch (Exception e) {
-                LOG.warn("[AI] Request {} attempt {} failed: {}", id, attempt, e.getMessage());
+                LOG.warn("[AI] Request {} attempt {} network error: {}", id, attempt, e.getMessage());
+                if (attempt < AiConfig.maxNetworkRetries) {
+                    try { Thread.sleep(AiConfig.networkRetryDelayMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
+                    continue;
+                }
                 env.queueEvent(AiAPI.EVENT_ERROR, id, humaniseException(e));
                 return;
             }

@@ -106,7 +106,7 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
             btnX, btnY, 12, 12,
             GuiSprites.AI_HINT::get,
             b -> requestAiHint(),
-            new DynamicImageButton.HintedMessage(Component.literal("Ask AI about this error"), null)
+            new DynamicImageButton.HintedMessage(Component.literal("Ask AI about this error"), (net.minecraft.network.chat.Component) null)
         );
         aiHintButton.visible = false;
         addRenderableWidget(aiHintButton);
@@ -125,7 +125,7 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
             lastRequestedError = error;
             aiHintOverlay.setHintText("Asking AI for help...");
             aiHintOverlay.visible = true;
-            NetworkMessages.sendToServer(new AskAiErrorHintMessage(menu, error));
+            dan200.computercraft.client.network.ClientNetworking.sendToServer(new dan200.computercraft.shared.network.server.AskAiErrorHintMessage(menu, error));
         }
     }
 

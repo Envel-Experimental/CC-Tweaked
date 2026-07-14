@@ -138,6 +138,12 @@ public final class AiConfig {
     /** Whether to enforce HTTPS for the endpoint URL (strongly recommended in production). */
     public static volatile boolean requireHttps = true;
 
+    /** Max number of attempts to make for HTTP network errors or 5xx/429 responses. */
+    public static volatile int maxNetworkRetries = 3;
+
+    /** Delay in milliseconds between network retry attempts. */
+    public static volatile int networkRetryDelayMs = 2000;
+
     // ---- Per-player rate limits (sliding windows) ----
 
     /** Max tokens forwarded to the model per request (context window cap). */

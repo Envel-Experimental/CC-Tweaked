@@ -103,6 +103,8 @@ public final class ConfigSpec {
     private static ConfigFile.Value<Integer> aiMaxMessageChars;
     private static ConfigFile.Value<Boolean> aiQueueOnLimit;
     private static ConfigFile.Value<Integer> aiQueueTimeoutSeconds;
+    private static ConfigFile.Value<Integer> aiNetworkRetries;
+    private static ConfigFile.Value<Integer> aiNetworkRetryDelay;
     // Moderation sub-section
     private static ConfigFile.Value<Boolean> aiModEnabled;
     private static ConfigFile.Value<String>  aiModEndpoint;
@@ -420,6 +422,8 @@ public final class ConfigSpec {
             aiMaxMessageChars       = builder.comment("Maximum characters in a single message.").defineInRange("max_message_chars", AiConfig.maxMessageChars, 100, 32000);
             aiQueueOnLimit          = builder.comment("Queue requests that exceed rate limits instead of failing immediately.").define("queue_on_limit", AiConfig.queueOnLimit);
             aiQueueTimeoutSeconds   = builder.comment("Seconds to wait in queue before returning a rate-limit error.").defineInRange("queue_timeout_seconds", AiConfig.queueTimeoutSeconds, 1, 300);
+            aiNetworkRetries        = builder.comment("Max number of attempts to make for HTTP network errors or 5xx/429 responses.").defineInRange("network_retries", AiConfig.maxNetworkRetries, 1, 10);
+            aiNetworkRetryDelay     = builder.comment("Delay in milliseconds between network retry attempts.").defineInRange("network_retry_delay_ms", AiConfig.networkRetryDelayMs, 0, 10000);
 
             builder.comment("Response moderation/validation via your proxy server.").push("moderation");
             aiModEnabled       = builder.comment("Enable moderation of AI responses before delivery to the player.").define("enabled", AiConfig.validation.enabled);
@@ -536,6 +540,8 @@ public final class ConfigSpec {
             AiConfig.maxMessageChars            = aiMaxMessageChars.get();
             AiConfig.queueOnLimit               = aiQueueOnLimit.get();
             AiConfig.queueTimeoutSeconds        = aiQueueTimeoutSeconds.get();
+            AiConfig.maxNetworkRetries          = aiNetworkRetries.get();
+            AiConfig.networkRetryDelayMs        = aiNetworkRetryDelay.get();
 
             AiConfig.validation.enabled         = aiModEnabled.get();
             AiConfig.validation.endpoint        = aiModEndpoint.get();
