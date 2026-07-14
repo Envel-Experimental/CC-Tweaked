@@ -110,7 +110,7 @@ class AiRequestBuilderTest {
         var truncated = AiRequestHandler.truncateToContextWindow(messages, 50);
 
         // Assert it doesn't crash, and size is greatly reduced but >= 0
-        assertTrue(truncated.size() >= 0 && truncated.size() < 1000, "Should truncate massive arrays without error");
+        assertTrue(!truncated.isEmpty() && truncated.size() < 1000, "Should truncate massive arrays without error");
 
         // Calculate estimated tokens to ensure it doesn't exceed 50 by much (or is 0)
         int totalTokens = truncated.stream().mapToInt(m -> (int) (m.content().length() / 3.5)).sum();

@@ -54,13 +54,18 @@ public final class AiRequestHandler {
         AiConfig.ModelEntry model,
         AiAPI.RequestOptions options
     ) {
-        NetworkUtils.EXECUTOR.execute(() -> {
-            try {
-                doRequest(env, id, messages, model, options);
-            } finally {
-                AiRateLimiter.INSTANCE.release();
-            }
-        });
+        try {
+            NetworkUtils.EXECUTOR.execute(() -> {
+                try {
+                    doRequest(env, id, messages, model, options);
+                } finally {
+                    AiRateLimiter.INSTANCE.release();
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            AiRateLimiter.INSTANCE.release();
+            env.queueEvent(AiAPI.EVENT_ERROR, id, "AI thread pool exhausted or shutting down.");
+        }
     }
 
     /**
@@ -73,43 +78,48 @@ public final class AiRequestHandler {
         java.util.function.Consumer<String> onSuccess,
         java.util.function.Consumer<Throwable> onError
     ) {
-        NetworkUtils.EXECUTOR.execute(() -> {
-            try {
-                var validation = AiConfig.validation;
-                var maxRetries = validation.enabled ? validation.maxRetries : 1;
-                String lastResponse = null;
-                boolean validated = false;
+        try {
+            NetworkUtils.EXECUTOR.execute(() -> {
+                try {
+                    var validation = AiConfig.validation;
+                    var maxRetries = validation.enabled ? validation.maxRetries : 1;
+                    String lastResponse = null;
+                    boolean validated = false;
 
-                for (var attempt = 1; attempt <= maxRetries; attempt++) {
-                    try {
-                        lastResponse = sendRawRequest(
-                            AiConfig.endpoint + (AiConfig.endpoint.endsWith("/") ? "" : "/") + "chat/completions",
-                            AiConfig.getServerApiKey(),
-                            buildJsonBody(messages, model, options), 60
-                        );
-                    } catch (Exception e) {
-                        onError.accept(e);
-                        return;
-                    }
+                    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                        try {
+                            lastResponse = sendRawRequest(
+                                AiConfig.endpoint + (AiConfig.endpoint.endsWith("/") ? "" : "/") + "chat/completions",
+                                AiConfig.getServerApiKey(),
+                                buildJsonBody(messages, model, options), 60
+                            );
+                        } catch (Exception e) {
+                            onError.accept(e);
+                            return;
+                        }
 
-                    if (lastResponse == null) {
-                        onError.accept(new java.io.IOException("AI returned an empty response."));
-                        return;
-                    }
+                        if (lastResponse == null) {
+                            onError.accept(new java.io.IOException("AI returned an empty response."));
+                            return;
+                        }
 
-                    if (!validation.enabled || runValidation(validation, lastResponse)) {
-                        validated = true;
-                        break;
+                        if (!validation.enabled || runValidation(validation, lastResponse)) {
+                            validated = true;
+                            break;
+                        }
                     }
+                    
+                    onSuccess.accept(lastResponse);
+                } catch (Exception e) {
+                    onError.accept(e);
+                } finally {
+                    AiRateLimiter.INSTANCE.release();
                 }
-                
-                onSuccess.accept(lastResponse);
-            } catch (Exception e) {
-                onError.accept(e);
-            } finally {
-                AiRateLimiter.INSTANCE.release();
-            }
-        });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            AiRateLimiter.INSTANCE.release();
+            onError.accept(e);
+        }
     }
 
     private static void doRequest(
