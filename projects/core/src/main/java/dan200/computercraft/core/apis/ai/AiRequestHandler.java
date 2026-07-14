@@ -347,7 +347,7 @@ public final class AiRequestHandler {
      */
     static List<AiAPI.AiMessage> truncateToContextWindow(List<AiAPI.AiMessage> messages, int maxTokens) {
         var list = new java.util.ArrayDeque<>(messages);
-        while (!list.isEmpty()) {
+        while (list.size() > 1) {
             int total = list.stream().mapToInt(m -> (int) (m.content().length() / 3.5)).sum();
             if (total <= maxTokens) break;
             list.pollFirst(); // remove oldest

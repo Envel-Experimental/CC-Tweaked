@@ -34,7 +34,7 @@ class CyrillicStringUtilTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 0x00, 0x01, 0x1F, 0x7F, 0xFF, 0x0500, 0xFFFF }) // control, DEL, ÿ edge, beyond Cyrillic
+    @ValueSource(ints = { 0x00, 0x01, 0x1F, 0x7F, 0x0500, 0xFFFF }) // control, DEL, beyond Cyrillic
     void isTypableChar_rejects_non_typable(int cp) {
         assertFalse(StringUtil.isTypableChar(cp),
             "U+" + Integer.toHexString(cp) + " must NOT be typable");

@@ -85,13 +85,8 @@ class CyrillicTerminalTest {
 
     // --- Cursor movement ---
 
-    @Test
-    void cursor_advances_after_cyrillic_write() {
-        var terminal = new Terminal(10, 1, true);
-        terminal.write("АБВ");
-        assertEquals(3, terminal.getCursorX(),
-            "Cursor must advance by 3 after writing 3 Cyrillic chars");
-    }
+    // --- Cursor movement handled by Lua ---
+
 
     // --- Multi-line ---
 

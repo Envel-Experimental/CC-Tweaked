@@ -58,7 +58,7 @@ public class TerminalWidget extends AbstractWidget {
 
     private final BitSet keysDown = new BitSet(256);
 
-    private String currentError = null;
+    private @org.jspecify.annotations.Nullable String currentError = null;
 
     public TerminalWidget(Terminal terminal, InputHandler computer, int x, int y) {
         super(x, y, terminal.getWidth() * FONT_WIDTH + MARGIN * 2, terminal.getHeight() * FONT_HEIGHT + MARGIN * 2, DESCRIPTION);
@@ -250,7 +250,7 @@ public class TerminalWidget extends AbstractWidget {
         }
     }
 
-    public String getCurrentError() {
+    public @org.jspecify.annotations.Nullable String getCurrentError() {
         return currentError;
     }
 

@@ -120,6 +120,7 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
     }
 
     private void requestAiHint() {
+        if (terminal == null || aiHintOverlay == null) return;
         var error = terminal.getCurrentError();
         if (error != null) {
             lastRequestedError = error;
@@ -129,33 +130,29 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
         }
     }
 
-    public void onAiHintResponse(String hint) {
+    public void onAiHintResponse(String message) {
         if (aiHintOverlay != null) {
-            aiHintOverlay.setHintText(hint);
-            if (!aiHintOverlay.visible) {
-                // Should we force show it? Usually it's visible, but if user closed it early, we don't pop it up again.
-            }
+            aiHintOverlay.setHintText(message);
         }
     }
 
     @Override
-    public void containerTick() {
+    protected void containerTick() {
         super.containerTick();
         getTerminal().update();
 
-        // Update AI hint button visibility based on errors
-        if (AiConfig.enabled && AiConfig.errorHintEnabled) {
+        if (terminal != null && aiHintButton != null && aiHintOverlay != null) {
             var currentError = terminal.getCurrentError();
             aiHintButton.visible = currentError != null;
             if (currentError == null) {
                 aiHintOverlay.visible = false;
                 lastRequestedError = null;
             } else if (!currentError.equals(lastRequestedError)) {
-                // Error changed, hide the old overlay
+                // If error changed, hide the overlay until requested again
                 aiHintOverlay.visible = false;
                 lastRequestedError = null;
             }
-        } else {
+        } else if (aiHintButton != null && aiHintOverlay != null) {
             aiHintButton.visible = false;
             aiHintOverlay.visible = false;
         }

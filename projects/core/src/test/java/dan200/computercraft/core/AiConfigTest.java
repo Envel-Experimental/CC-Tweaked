@@ -14,6 +14,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayNameGeneration(ReplaceUnderscoresDisplayNameGenerator.class)
 class AiConfigTest {
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        AiConfig.enabled = true;
+    }
+
     @AfterEach
     void tearDown() {
         // Reset to default valid state so it doesn't pollute other tests
@@ -22,10 +27,12 @@ class AiConfigTest {
         AiConfig.maxResponseTokens = 1000;
         AiConfig.maxMessageChars = 2000;
         AiConfig.requireHttps = true;
+        AiConfig.enabled = false;
     }
 
     @Test
     void default_state_is_valid() {
+        AiConfig.enabled = false;
         assertDoesNotThrow(AiConfig::validate, "Default AiConfig values should be valid");
     }
 

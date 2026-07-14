@@ -62,7 +62,7 @@ public class ComputerCraftClient {
             new SimpleSynchronousResourceReloadListener() {
                 @Override
                 public ResourceLocation getFabricId() {
-                    return ResourceLocation.fromNamespaceAndPath(ComputerCraftAPI.MOD_ID, "cyrillic_font");
+                    return new ResourceLocation(ComputerCraftAPI.MOD_ID, "cyrillic_font");
                 }
 
                 @Override

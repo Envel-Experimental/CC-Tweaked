@@ -371,6 +371,9 @@ public final class AiConfig {
         if (maxResponseTokens < 16) {
             throw new IllegalStateException("[AI] 'max_response_tokens' must be >= 16.");
         }
+        if (maxMessageChars < 1) {
+            throw new IllegalStateException("[AI] 'max_message_chars' must be >= 1.");
+        }
         if (validation.enabled && validation.maxRetries < 1) {
             throw new IllegalStateException("[AI] validation.max_retries must be >= 1.");
         }
