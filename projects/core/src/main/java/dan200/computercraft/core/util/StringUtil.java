@@ -95,8 +95,10 @@ public final class StringUtil {
      */
     public static boolean isTypableChar(int chr) {
         if (chr <= 0 || chr == '\r' || chr == '\n') return false;
-        // ASCII printable
-        if (chr <= 255) return true;
+        // ASCII printable (exclude control chars like 1-31 and 127)
+        if (chr >= 32 && chr <= 126) return true;
+        // Latin-1 extended
+        if (chr >= 160 && chr <= 255) return true;
         // Cyrillic block — supported via extended font atlas
         if (chr >= 0x0400 && chr <= 0x04FF) return true;
         return false;
@@ -130,18 +132,15 @@ public final class StringUtil {
      * @return The encoded clipboard text as a ByteBuffer of UTF-16 LE pairs.
      */
     public static ByteBuffer getClipboardString(String clipboard) {
-        // Each char may need up to 2 bytes (UTF-16 LE).
-        var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length()) * 2];
+        var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length())];
         var idx = 0;
 
         var iterator = clipboard.codePoints().iterator();
-        while (iterator.hasNext() && idx < output.length - 1) {
+        while (iterator.hasNext() && idx < output.length) {
             var chr = unicodeToTerminal(iterator.next());
-            if (chr < 0) continue;
-            if (!isTypableChar(chr)) break;
-            // Store as little-endian UTF-16.
-            output[idx++] = (byte) (chr & 0xFF);
-            output[idx++] = (byte) ((chr >> 8) & 0xFF);
+            if (chr < 0) continue; // Strip out unconvertible characters
+            if (!isTypableChar(chr)) break; // Stop at untypable ones.
+            output[idx++] = (byte) chr; // Paste natively supports 8-bit encoded characters. Cyrillic will be clamped. To paste Cyrillic, users use external programs.
         }
 
         return ByteBuffer.wrap(output, 0, idx).asReadOnlyBuffer();

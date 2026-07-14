@@ -71,9 +71,9 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
     private final int uploadMaxSize;
     private final ItemStack displayStack;
 
-    private AiHintOverlay aiHintOverlay;
-    private DynamicImageButton aiHintButton;
-    private String lastRequestedError = null;
+    private @org.jspecify.annotations.Nullable AiHintOverlay aiHintOverlay;
+    private @org.jspecify.annotations.Nullable DynamicImageButton aiHintButton;
+    private @org.jspecify.annotations.Nullable String lastRequestedError = null;
 
     public AbstractComputerScreen(T container, Inventory player, Component title, int sidebarYOffset) {
         super(container, player, title);
