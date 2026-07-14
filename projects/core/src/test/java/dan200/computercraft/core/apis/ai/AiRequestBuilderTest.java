@@ -92,4 +92,26 @@ class AiRequestBuilderTest {
         assertTrue(json.contains("Additional context provided by the program: Secret admin rule"),
             "opts.system_context must be appended");
     }
+
+    @Test
+    void fuzz_truncation_logic() {
+        var random = new java.util.Random(42);
+        var messages = new ArrayList<AiAPI.AiMessage>();
+
+        // Inject 1000 messages of random sizes from 1 to 10,000 chars
+        for (int i = 0; i < 1000; i++) {
+            int length = random.nextInt(10000) + 1;
+            messages.add(new AiAPI.AiMessage("user", "A".repeat(length)));
+        }
+
+        // Extremely small context window
+        var truncated = AiRequestHandler.truncateToContextWindow(messages, 50);
+
+        // Assert it doesn't crash, and size is greatly reduced but >= 0
+        assertTrue(truncated.size() >= 0 && truncated.size() < 1000, "Should truncate massive arrays without error");
+
+        // Calculate estimated tokens to ensure it doesn't exceed 50 by much (or is 0)
+        int totalTokens = truncated.stream().mapToInt(m -> (int) (m.content().length() / 3.5)).sum();
+        assertTrue(totalTokens <= 50, "Truncated output should not exceed token limits");
+    }
 }

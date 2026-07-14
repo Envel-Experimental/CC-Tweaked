@@ -100,4 +100,32 @@ class AiRateLimiterTest {
         
         executor.shutdown();
     }
+    @Test
+    void memory_leak_prevention_on_eviction() throws Exception {
+        var map = limiter.playerStatesForTest();
+        
+        // Insert 10,000 unique UUIDs
+        for (int i = 0; i < 10000; i++) {
+            var uuid = UUID.randomUUID();
+            assertEquals(AiRateLimiter.LimitResult.ALLOWED, limiter.check(uuid));
+            limiter.release(); // release concurrent lock
+        }
+
+        assertEquals(10000, map.size());
+
+        // Simulate 26 hours of inactivity
+        var cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(26);
+        for (var state : map.values()) {
+            var lastAccessField = state.getClass().getDeclaredField("lastAccess");
+            lastAccessField.setAccessible(true);
+            lastAccessField.set(state, cutoff);
+        }
+
+        // Run eviction (it's private, invoke via reflection)
+        var evictMethod = AiRateLimiter.class.getDeclaredMethod("evict");
+        evictMethod.setAccessible(true);
+        evictMethod.invoke(limiter);
+
+        assertEquals(0, map.size(), "Eviction should prevent memory leaks by clearing stale entries");
+    }
 }

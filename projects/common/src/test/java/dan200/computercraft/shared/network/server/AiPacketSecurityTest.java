@@ -88,4 +88,31 @@ class AiPacketSecurityTest {
         // Blank after sanitize -> drops
         assertEquals(0, AiRateLimiter.INSTANCE.playerStatesForTest().size());
     }
+    @Test
+    void fuzz_packet_payloads() {
+        // Generate a 100kb payload of mixed valid and invalid chars
+        var sb = new StringBuilder();
+        var rand = new java.util.Random(1337);
+        for (int i = 0; i < 100000; i++) {
+            // Mix printable, control chars, and unicode surrogates
+            int type = rand.nextInt(4);
+            if (type == 0) sb.append((char) (rand.nextInt(32))); // control chars
+            else if (type == 1) sb.append("A"); // ASCII
+            else if (type == 2) sb.append("\uD83D\uDE00"); // Emoji 😀
+            else sb.append("\u041F"); // Cyrillic П
+        }
+        
+        var massiveString = sb.toString();
+        
+        // This should not crash, it should strip control chars and cap at max_message_chars
+        message = new AskAiErrorHintMessage(menu, massiveString);
+        
+        // Handle should either rate limit or queue up HTTP, but we are testing it doesn't OOM or throw
+        assertDoesNotThrow(() -> {
+            message.handle(context, menu);
+        }, "Fuzzed packet payload should not crash the server handler");
+        
+        // If it got through sanitization and wasn't empty, it would increment rate limit
+        // We just care that it didn't crash.
+    }
 }
