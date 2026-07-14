@@ -104,8 +104,12 @@ public final class DirectFixedWidthFontRenderer {
             var colour = palette.getRenderColours(getColour(textColour.charAt(i), Colour.BLACK));
 
             int index = text.charAt(i);
-            // Codepoints 0–511 valid in extended atlas (Latin-1 + Cyrillic). Beyond = '?'.
-            if (index > 511) index = '?';
+            // Map true Cyrillic (U+0400-U+04FF) to right half of atlas (256-511)
+            if (index >= 0x0400 && index <= 0x04FF) {
+                index = index - 0x0400 + 256;
+            } else if (index > 511) {
+                index = '?';
+            }
             drawChar(emitter, x + i * FONT_WIDTH, y, index, colour);
         }
 

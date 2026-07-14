@@ -38,6 +38,22 @@ public abstract class TermMethods {
     @LuaFunction
     public final void write(Coerced<String> textA) throws LuaException {
         var text = textA.value();
+        
+        // Convert to bytes and attempt UTF-8 decode
+        var bytes = new byte[text.length()];
+        for (var i = 0; i < text.length(); i++) {
+            bytes[i] = (byte) text.charAt(i);
+        }
+        try {
+            var decoder = java.nio.charset.StandardCharsets.UTF_8.newDecoder();
+            decoder.onMalformedInput(java.nio.charset.CodingErrorAction.REPORT);
+            decoder.onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
+            var decoded = decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+            text = decoded; // Valid UTF-8, use decoded string
+        } catch (java.nio.charset.CharacterCodingException e) {
+            // Not valid UTF-8, use original text (ISO-8859-1)
+        }
+
         var terminal = getTerminal();
         synchronized (terminal) {
             terminal.write(text);
