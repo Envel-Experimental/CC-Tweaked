@@ -44,6 +44,9 @@ public final class NetworkMessages {
     public static final MessageType<SpeakerStopClientMessage> SPEAKER_STOP = registerClientbound(19, "speaker_stop", SpeakerStopClientMessage.class, SpeakerStopClientMessage::new);
     public static final MessageType<UploadResultMessage> UPLOAD_RESULT = registerClientbound(20, "upload_result", UploadResultMessage.class, UploadResultMessage::new);
     public static final MessageType<UpgradesLoadedMessage> UPGRADES_LOADED = registerClientbound(21, "upgrades_loaded", UpgradesLoadedMessage.class, UpgradesLoadedMessage::new);
+    public static final MessageType<AiHintResponseMessage> AI_HINT_RESPONSE = registerClientbound(22, "ai_hint_response", AiHintResponseMessage.class, AiHintResponseMessage::new);
+
+    public static final MessageType<AskAiErrorHintMessage> ASK_AI_ERROR_HINT = registerServerbound(23, "ask_ai_error_hint", AskAiErrorHintMessage.class, AskAiErrorHintMessage::new);
 
     private NetworkMessages() {
     }

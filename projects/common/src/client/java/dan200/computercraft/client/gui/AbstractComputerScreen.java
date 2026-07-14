@@ -7,6 +7,8 @@ package dan200.computercraft.client.gui;
 import dan200.computercraft.client.gui.widgets.ComputerSidebar;
 import dan200.computercraft.client.gui.widgets.DynamicImageButton;
 import dan200.computercraft.client.gui.widgets.TerminalWidget;
+import dan200.computercraft.client.gui.widgets.AiHintOverlay;
+import dan200.computercraft.client.gui.GuiSprites;
 import dan200.computercraft.client.network.ClientNetworking;
 import dan200.computercraft.core.terminal.Terminal;
 import dan200.computercraft.core.util.Nullability;
@@ -16,7 +18,10 @@ import dan200.computercraft.shared.computer.inventory.AbstractComputerMenu;
 import dan200.computercraft.shared.computer.upload.FileUpload;
 import dan200.computercraft.shared.computer.upload.UploadResult;
 import dan200.computercraft.shared.config.Config;
+import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.shared.network.server.UploadFileMessage;
+import dan200.computercraft.shared.network.server.AskAiErrorHintMessage;
+import dan200.computercraft.shared.network.NetworkMessages;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -66,6 +71,10 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
     private final int uploadMaxSize;
     private final ItemStack displayStack;
 
+    private AiHintOverlay aiHintOverlay;
+    private DynamicImageButton aiHintButton;
+    private String lastRequestedError = null;
+
     public AbstractComputerScreen(T container, Inventory player, Component title, int sidebarYOffset) {
         super(container, player, title);
         terminalData = container.getTerminal();
@@ -89,13 +98,67 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
 
         terminal = addRenderableWidget(createTerminal());
         ComputerSidebar.addButtons(menu::isOn, input, this::addRenderableWidget, leftPos, topPos + sidebarYOffset);
+        
+        // Add AI Hint Button below the default buttons
+        int btnX = leftPos + 4; // 3 border + 1
+        int btnY = topPos + sidebarYOffset + 35; // Position below TERMINATE button
+        aiHintButton = new DynamicImageButton(
+            btnX, btnY, 12, 12,
+            GuiSprites.AI_HINT::get,
+            b -> requestAiHint(),
+            new DynamicImageButton.HintedMessage(Component.literal("Ask AI about this error"), null)
+        );
+        aiHintButton.visible = false;
+        addRenderableWidget(aiHintButton);
+
+        // Add the overlay centered
+        aiHintOverlay = new AiHintOverlay(leftPos + 25, topPos + 25, terminal.getWidth() - 25, terminal.getHeight() - 25);
+        aiHintOverlay.visible = false;
+        addRenderableWidget(aiHintOverlay);
+
         setFocused(terminal);
+    }
+
+    private void requestAiHint() {
+        var error = terminal.getCurrentError();
+        if (error != null) {
+            lastRequestedError = error;
+            aiHintOverlay.setHintText("Asking AI for help...");
+            aiHintOverlay.visible = true;
+            NetworkMessages.sendToServer(new AskAiErrorHintMessage(menu, error));
+        }
+    }
+
+    public void onAiHintResponse(String hint) {
+        if (aiHintOverlay != null) {
+            aiHintOverlay.setHintText(hint);
+            if (!aiHintOverlay.visible) {
+                // Should we force show it? Usually it's visible, but if user closed it early, we don't pop it up again.
+            }
+        }
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
         getTerminal().update();
+
+        // Update AI hint button visibility based on errors
+        if (AiConfig.enabled && AiConfig.errorHintEnabled) {
+            var currentError = terminal.getCurrentError();
+            aiHintButton.visible = currentError != null;
+            if (currentError == null) {
+                aiHintOverlay.visible = false;
+                lastRequestedError = null;
+            } else if (!currentError.equals(lastRequestedError)) {
+                // Error changed, hide the old overlay
+                aiHintOverlay.visible = false;
+                lastRequestedError = null;
+            }
+        } else {
+            aiHintButton.visible = false;
+            aiHintOverlay.visible = false;
+        }
 
         if (uploadNagDeadline != Long.MAX_VALUE && Util.getNanos() >= uploadNagDeadline) {
             new ItemToast(minecraft(), displayStack, NO_RESPONSE_TITLE, NO_RESPONSE_MSG, ItemToast.TRANSFER_NO_RESPONSE_TOKEN)

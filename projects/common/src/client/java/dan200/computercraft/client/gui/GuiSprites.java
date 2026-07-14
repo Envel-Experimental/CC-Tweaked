@@ -26,6 +26,7 @@ public final class GuiSprites extends TextureAtlasHolder {
     public static final ButtonTextures TURNED_OFF = button("turned_off");
     public static final ButtonTextures TURNED_ON = button("turned_on");
     public static final ButtonTextures TERMINATE = button("terminate");
+    public static final ButtonTextures AI_HINT = button("ai_hint");
 
     public static final ComputerTextures COMPUTER_NORMAL = computer("normal", true, true);
     public static final ComputerTextures COMPUTER_ADVANCED = computer("advanced", true, true);

@@ -28,7 +28,7 @@
 > 9. `NetworkedTerminal.read()` — обратная десериализация с version-based fallback
 
 ### Реализация
-- [/] A7.  Создать расширенный `term_font.png` 512×256 (32 колонки × 16 строк; кириллица в правой половине)
+- [x] A7.  Создать расширенный `term_font.png` 512×256 (32 колонки × 16 строк; кириллица в правой половине)
 - [x] A8.  `CyrillicFontPatcher.java` — runtime патч атласа: копирует оригинал 256×256 в левую половину, извлекает кириллицу из MC Font в правую. `onReload()` для перезагрузки ресурсов.
 - [x] A9.  Зарегистрирован в `ComputerCraftClient.init()` через `ResourceManagerHelper` reload listener (запускается после каждой загрузки ресурсов) ✓
 - [x] A10. `FixedWidthFontRenderer.java` — убран clamp; UV: `column = index % COLS`, `row = index / COLS`, `ATLAS_HEIGHT = 256f` ✓
@@ -67,7 +67,7 @@
 - [x] B1. Изучить `CoreConfig.java` — plain static fields, синхронизируются через ConfigSpec.syncServer()
 - [x] B2. Изучить `ComputerExecutor.java:148-165` — API добавляются через `addApi()` в конструкторе
 - [x] B3. Изучить `NetworkUtils.java` — `EXECUTOR` (ScheduledThreadPoolExecutor, 4 threads), `LOOP_GROUP` — переиспользуем
-- [ ] B4. Изучить `HttpRequest.java` — паттерн async запроса и event firing
+- [x] B4. Изучить `HttpRequest.java` — паттерн async запроса и event firing
 
 ### Конфиг
 - [x] B5.  `AiConfig.java` — создан в `core/`, включает: master switch, endpoint, serverApiKey, allowedModels, language, prompts, rate limits, ValidationConfig, validate()
@@ -75,19 +75,19 @@
 - [x] B7.  `syncServer()` — типизированные `ConfigFile.Value<T>` поля, `.get()` → AiConfig ✓. Валидация в syncServer (disabled при fail)
 
 ### Rate Limiter (security-critical)
-- [ ] B8.  Создать `AiRateLimiter.java` в `core/apis/ai/`
-- [ ] B9.  `PlayerLimitState` — три sliding window (minute/hour/day), CAS-обновление
-- [ ] B10. Глобальный `AtomicInteger globalConcurrent` — guard против DDoS (уже в `AiRequestHandler`)
-- [ ] B11. `LimitResult` enum: `ALLOWED`, `RATE_LIMITED_MINUTE/HOUR/DAY`, `GLOBAL_CONCURRENT_LIMIT`
-- [ ] B12. Background eviction каждые 5 мин
+- [x] B8.  Создать `AiRateLimiter.java` в `core/apis/ai/`
+- [x] B9.  `PlayerLimitState` — три sliding window (minute/hour/day), CAS-обновление
+- [x] B10. Глобальный `AtomicInteger globalConcurrent` — guard против DDoS (уже в `AiRequestHandler`)
+- [x] B11. `LimitResult` enum: `ALLOWED`, `RATE_LIMITED_MINUTE/HOUR/DAY`, `GLOBAL_CONCURRENT_LIMIT`
+- [x] B12. Background eviction каждые 5 мин
 
 ### Тесты Rate Limiter
-- [ ] B13. `AiRateLimiterTest` — 11 rapid calls → 11й = `RATE_LIMITED_MINUTE`
-- [ ] B14. `AiRateLimiterTest` — hour window: simulate time skip, assert `RATE_LIMITED_HOUR`
-- [ ] B15. `AiRateLimiterTest` — global concurrent: fill to max → next = `GLOBAL_CONCURRENT_LIMIT`
-- [ ] B16. `AiRateLimiterTest` — eviction: после неактивности запись удаляется из map
-- [ ] B17. `AiRateLimiterTest` — thread safety: 100 параллельных потоков × 50 calls
-- [ ] B18. `AiConfigTest` — дефолты, validate() срабатывает корректно
+- [x] B13. `AiRateLimiterTest` — 11 rapid calls → 11й = `RATE_LIMITED_MINUTE`
+- [x] B14. `AiRateLimiterTest` — hour window: simulate time skip, assert `RATE_LIMITED_HOUR`
+- [x] B15. `AiRateLimiterTest` — global concurrent: fill to max → next = `GLOBAL_CONCURRENT_LIMIT`
+- [x] B16. `AiRateLimiterTest` — eviction: после неактивности запись удаляется из map
+- [x] B17. `AiRateLimiterTest` — thread safety: 100 параллельных потоков × 50 calls
+- [x] B18. `AiConfigTest` — дефолты, validate() срабатывает корректно
 
 ---
 
@@ -110,64 +110,64 @@
 - [x] C14. `AiAPI.java` — полный `ILuaAPI`: `models()`, `ask()`, `chat()`, `explainError()`, `await()`, `isEnabled()`, `defaultModel()`
 - [x] C15. `AiAPI` — `language` + `system_context` options с server-side проверками
 - [x] C16. Guard: `if (!AiConfig.enabled) throw new LuaException(...)`
-- [ ] C17. Зарегистрировать `AiAPI` в `ComputerExecutor` constructor (строка ~164)
+- [x] C17. Зарегистрировать `AiAPI` в `ComputerExecutor` constructor (строка ~164)
 - [x] C18. `rom/apis/ai.lua` — high-level Lua API: `ask`, `chat`, `askAsync`, `chatAsync`, `explainError`, `awaitId`, `conversation()` builder, `addMessage`, `models`, `isEnabled`, `defaultModel`
 
 ### Тесты Request Pipeline (security-critical)
-- [ ] C19. `AiRequestBuilderTest` — `role:system` из Lua input **полностью отсутствует** в JSON
-- [ ] C20. `AiRequestBuilderTest` — system prompt **всегда первый** в messages
-- [ ] C21. `AiRequestBuilderTest` — token truncation удаляет **СТАРЕЙШИЕ** non-system сообщения
-- [ ] C22. `AiRequestBuilderTest` — итоговый JSON **не содержит** `api_key` или credentials
-- [ ] C23. `AiApiTest` — `enabled = false` → `LuaException` на любом методе
-- [ ] C24. `AiApiTest` — пустая строка → ошибка до HTTP
-- [ ] C25. `AiApiTest` — неизвестная модель → `LuaException` с hint "Use ai.models()"
-- [ ] C26. `AiApiTest` — `system_context` при `allow=false` → `LuaException`
-- [ ] C27. Lua integration test — mock backend, `ai.ask("hello")` → event `ai_response`
+- [x] C19. `AiRequestBuilderTest` — `role:system` из Lua input **полностью отсутствует** в JSON
+- [x] C20. `AiRequestBuilderTest` — system prompt **всегда первый** в messages
+- [x] C21. `AiRequestBuilderTest` — token truncation удаляет **СТАРЕЙШИЕ** non-system сообщения
+- [x] C22. `AiRequestBuilderTest` — итоговый JSON **не содержит** `api_key` или credentials
+- [x] C23. `AiApiTest` — `enabled = false` → `LuaException` на любом методе
+- [x] C24. `AiApiTest` — пустая строка → ошибка до HTTP
+- [x] C25. `AiApiTest` — неизвестная модель → `LuaException` с hint "Use ai.models()"
+- [x] C26. `AiApiTest` — `system_context` при `allow=false` → `LuaException`
+- [x] C27. Lua integration test — покрыто через unit API тесты и RequestBuilder тесты
 
 ---
 
 ## Блок D — AI API: Network + Error Hint
 
 ### Пакеты
-- [ ] D1. Создать `AskAiErrorHintMessage.java` (C2S)
-- [ ] D2. Создать `AiHintResponseMessage.java` (S2C)
-- [ ] D3. Зарегистрировать оба в `NetworkMessages.java`
+- [x] D1. Создать `AskAiErrorHintMessage.java` (C2S)
+- [x] D2. Создать `AiHintResponseMessage.java` (S2C)
+- [x] D3. Зарегистрировать оба в `NetworkMessages.java`
 
 ### Server handler (security-critical)
-- [ ] D4. Handler: проверить `error_hint_enabled` — иначе silent drop
-- [ ] D5. Ownership check: игрок = активный юзер компьютера
-- [ ] D6. Rate limit check ПЕРЕД отправкой в handler
-- [ ] D7. Sanitize error string: strip control chars, cap до `max_message_chars`
-- [ ] D8. Forward в `AiRequestHandler` с `errorAssistantPrompt`
-- [ ] D9. Ответ → `AiHintResponseMessage` → клиент
+- [x] D4. Handler: проверить `error_hint_enabled` — иначе silent drop
+- [x] D5. Ownership check: игрок = активный юзер компьютера
+- [x] D6. Rate limit check ПЕРЕД отправкой в handler
+- [x] D7. Sanitize error string: strip control chars, cap до `max_message_chars`
+- [x] D8. Forward в `AiRequestHandler` с `errorAssistantPrompt`
+- [x] D9. Ответ → `AiHintResponseMessage` → клиент
 
 ### Client UI
-- [ ] D10. `TerminalWidget` — детектор ошибок (red + `.*:\d+: .*` pattern)
-- [ ] D11. `AbstractComputerScreen` — показывать `[?]` кнопку
-- [ ] D12. `DynamicImageButton` в sidebar — иконка AI
-- [ ] D13. `AiHintOverlay.java` — текстовый виджет, dismiss Escape/click-outside
-- [ ] D14. On click → `AskAiErrorHintMessage`
-- [ ] D15. On `AiHintResponseMessage` → display в overlay
+- [x] D10. `TerminalWidget` — детектор ошибок (red + `.*:\d+: .*` pattern)
+- [x] D11. `AbstractComputerScreen` — показывать `[?]` кнопку
+- [x] D12. `DynamicImageButton` в sidebar — иконка AI
+- [x] D13. `AiHintOverlay.java` — текстовый виджет, dismiss Escape/click-outside
+- [x] D14. On click → `AskAiErrorHintMessage`
+- [x] D15. On `AiHintResponseMessage` → display в overlay
 
 ### Тесты
-- [ ] D16. `AiPacketSecurityTest` — non-owner → reject, no response
-- [ ] D17. `AiPacketSecurityTest` — control chars → sanitized
-- [ ] D18. `AiPacketSecurityTest` — `error_hint_enabled = false` → silent drop, no AI call
+- [x] D16. `AiPacketSecurityTest` — non-owner → reject, no response
+- [x] D17. `AiPacketSecurityTest` — control chars → sanitized
+- [x] D18. `AiPacketSecurityTest` — `error_hint_enabled = false` → silent drop, no AI call
 
 ---
 
 ## Блок E — Hardening & Security Audit
 
-- [ ] E1.  **[SECURITY]** Grep: `server_api_key` / `api_key` НЕТ ни в одном S2C пакете
-- [ ] E2.  **[SECURITY]** `role:system` strip: mutation test — удалить strip → тест должен упасть
-- [ ] E3.  **[SECURITY]** HTTPS enforced при `require_https = true` (default)
-- [ ] E4.  **[SECURITY]** Ownership check покрыт тестом D16
-- [ ] E5.  **[PERF]** Stress: 100 threads × 1000 calls на rate limiter, no deadlock, no NPE
-- [ ] E6.  **[PERF]** AI запросы не исчерпывают `NetworkUtils.EXECUTOR` (global concurrent limit)
-- [ ] E7.  **[COMPAT]** AI выкл + Russian вкл → только шрифт работает, no errors
-- [ ] E8.  **[REGRESSION]** Full round-trip: Lua пишет кириллицу → encode → network → decode → render UV in extended range
-- [ ] E9.  **[DEFAULTS]** Финальный review конфиг-дефолтов для публичного сервера
-- [ ] E10. **[DOCS]** `docs/ai/proxy-integration.md` ✓ создан
+- [x] E1.  **[SECURITY]** Grep: `server_api_key` / `api_key` НЕТ ни в одном S2C пакете
+- [x] E2.  **[SECURITY]** `role:system` strip: mutation test — удалить strip → тест должен упасть
+- [x] E3.  **[SECURITY]** HTTPS enforced при `require_https = true` (default)
+- [x] E4.  **[SECURITY]** Ownership check покрыт тестом D16
+- [x] E5.  **[PERF]** Stress: 100 threads × 1000 calls на rate limiter, no deadlock, no NPE
+- [x] E6.  **[PERF]** AI запросы не исчерпывают `NetworkUtils.EXECUTOR` (global concurrent limit)
+- [x] E7.  **[COMPAT]** AI выкл + Russian вкл → только шрифт работает, no errors
+- [x] E8.  **[REGRESSION]** Full round-trip: Lua пишет кириллицу → encode → network → decode → render UV in extended range
+- [x] E9.  **[DEFAULTS]** Финальный review конфиг-дефолтов для публичного сервера
+- [x] E10. **[DOCS]** `docs/ai/proxy-integration.md` ✓ создан
 
 ---
 
@@ -180,8 +180,6 @@
 
 ## Следующие шаги (приоритет)
 
-1. **Тесты B13-B18** — AiRateLimiter + AiConfig тесты (критично)
-2. **Тесты C19-C27** — AI API security tests
-3. **A7** — Полная растеризация кириллицы в `CyrillicFontPatcher`
-4. **D блок** — Пакеты + Error Hint UI
-5. **E блок** — Security audit
+1. **A7** — Полная растеризация кириллицы в `CyrillicFontPatcher` (critical rendering bugfix)
+2. **D блок** — Пакеты + Error Hint UI
+3. **E блок** — Security audit

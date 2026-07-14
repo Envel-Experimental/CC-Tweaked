@@ -141,7 +141,7 @@ public final class AiRequestHandler {
      *   <li>Conversation history (user/assistant only).</li>
      * </ol>
      */
-    private static String buildJsonBody(
+    static String buildJsonBody(
         List<AiAPI.AiMessage> messages,
         AiConfig.ModelEntry model,
         AiAPI.RequestOptions options
@@ -294,7 +294,7 @@ public final class AiRequestHandler {
      * Remove oldest non-system messages until estimated token count is within the context window.
      * Estimation: tokens ≈ characters / 3.5 (conservative for mixed language content).
      */
-    private static List<AiAPI.AiMessage> truncateToContextWindow(List<AiAPI.AiMessage> messages, int maxTokens) {
+    static List<AiAPI.AiMessage> truncateToContextWindow(List<AiAPI.AiMessage> messages, int maxTokens) {
         var list = new java.util.ArrayDeque<>(messages);
         while (!list.isEmpty()) {
             int total = list.stream().mapToInt(m -> (int) (m.content().length() / 3.5)).sum();
