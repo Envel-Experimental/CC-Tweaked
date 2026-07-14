@@ -8,6 +8,7 @@ import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.core.CoreConfig;
 import dan200.computercraft.core.Logging;
+import dan200.computercraft.core.AiConfig;
 import dan200.computercraft.core.apis.http.NetworkUtils;
 import dan200.computercraft.core.apis.http.options.ProxyType;
 import dan200.computercraft.core.computer.mainthread.MainThreadConfig;
@@ -77,10 +78,40 @@ public final class ConfigSpec {
     public static final ConfigFile.Value<Integer> monitorHeight;
 
     public static final ConfigFile clientSpec;
-
     public static final ConfigFile.Value<MonitorRenderer> monitorRenderer;
     public static final ConfigFile.Value<Integer> monitorDistance;
     public static final ConfigFile.Value<Integer> uploadNagDelay;
+
+    // --- AI fields ---
+    private static ConfigFile.Value<Boolean> aiEnabled;
+    private static ConfigFile.Value<String>  aiEndpoint;
+    private static ConfigFile.Value<String>  aiApiKey;
+    private static ConfigFile.Value<String>  aiDefaultModel;
+    private static ConfigFile.Value<String>  aiDefaultLanguage;
+    private static ConfigFile.Value<Boolean> aiAllowContext;
+    private static ConfigFile.Value<Integer> aiMaxContextStringChars;
+    private static ConfigFile.Value<String>  aiSystemPrompt;
+    private static ConfigFile.Value<String>  aiErrorPrompt;
+    private static ConfigFile.Value<Boolean> aiErrorHintEnabled;
+    private static ConfigFile.Value<Boolean> aiRequireHttps;
+    private static ConfigFile.Value<Integer> aiMaxContextTokens;
+    private static ConfigFile.Value<Integer> aiMaxResponseTokens;
+    private static ConfigFile.Value<Integer> aiRequestsPerMinute;
+    private static ConfigFile.Value<Integer> aiRequestsPerHour;
+    private static ConfigFile.Value<Integer> aiRequestsPerDay;
+    private static ConfigFile.Value<Integer> aiMaxGlobalConcurrent;
+    private static ConfigFile.Value<Integer> aiMaxMessageChars;
+    private static ConfigFile.Value<Boolean> aiQueueOnLimit;
+    private static ConfigFile.Value<Integer> aiQueueTimeoutSeconds;
+    // Moderation sub-section
+    private static ConfigFile.Value<Boolean> aiModEnabled;
+    private static ConfigFile.Value<String>  aiModEndpoint;
+    private static ConfigFile.Value<String>  aiModApiKey;
+    private static ConfigFile.Value<String>  aiModFormat;
+    private static ConfigFile.Value<String>  aiModChatPrompt;
+    private static ConfigFile.Value<String>  aiModChatModel;
+    private static ConfigFile.Value<Integer> aiModMaxRetries;
+    private static ConfigFile.Value<Integer> aiModTimeoutSeconds;
 
     private static MarkerFilter logFilter = MarkerFilter.createFilter(Logging.COMPUTER_ERROR.getName(), Filter.Result.ACCEPT, Filter.Result.NEUTRAL);
 
@@ -358,7 +389,50 @@ public final class ConfigSpec {
             monitorHeight = builder.comment("Maximum height of monitors").defineInRange("height", Config.monitorHeight, 1, 32);
             builder.pop();
 
-            builder.pop();
+        }
+
+        { // AI API
+            builder
+                .comment("""
+                    Configures the CC:Tweaked AI API.
+                    The AI feature lets ComputerCraft programs call an OpenAI-compatible language
+                    model via your own proxy server. The server API key is stored server-side only
+                    and never transmitted to clients.""")
+                .push("ai");
+
+            aiEnabled               = builder.comment("Enable the AI API on computers.").define("enabled", AiConfig.enabled);
+            aiEndpoint              = builder.comment("URL of your OpenAI-compatible proxy endpoint (e.g. https://myproxy.example.com).").define("endpoint", AiConfig.endpoint);
+            aiApiKey                = builder.comment("API key for your proxy server. NEVER share this publicly.").define("api_key", "");
+            aiDefaultModel          = builder.comment("Default model ID used when ai.ask() is called without a model option.").define("default_model", AiConfig.defaultModel);
+            aiDefaultLanguage       = builder.comment("Default response language injected into {language} prompt placeholder.").define("default_response_language", AiConfig.defaultResponseLanguage);
+            aiAllowContext          = builder.comment("Allow Lua programs to inject additional system context via opts.system_context.").define("allow_additional_system_context", AiConfig.allowAdditionalSystemContext);
+            aiMaxContextStringChars = builder.comment("Maximum length of the system_context string from Lua.").defineInRange("max_context_string_chars", AiConfig.maxContextStringChars, 0, 2000);
+            aiSystemPrompt          = builder.comment("System prompt prepended to every AI request. Supports {language} placeholder.").define("system_prompt", AiConfig.systemPrompt);
+            aiErrorPrompt           = builder.comment("System prompt for the error-hint feature. Supports {language}.").define("error_assistant_prompt", AiConfig.errorAssistantPrompt);
+            aiErrorHintEnabled      = builder.comment("Show an AI hint button in the computer GUI when a Lua error is detected.").define("error_hint_enabled", AiConfig.errorHintEnabled);
+            aiRequireHttps          = builder.comment("Require the endpoint URL to use HTTPS.").define("require_https", AiConfig.requireHttps);
+            aiMaxContextTokens      = builder.comment("Maximum number of tokens in the conversation context.").defineInRange("max_context_tokens", AiConfig.maxContextTokens, 64, 128000);
+            aiMaxResponseTokens     = builder.comment("Maximum tokens in a single AI response.").defineInRange("max_response_tokens", AiConfig.maxResponseTokens, 16, 32768);
+            aiRequestsPerMinute     = builder.comment("Max requests per player per minute (0 = unlimited).").defineInRange("requests_per_minute", AiConfig.requestsPerMinute, 0, Integer.MAX_VALUE);
+            aiRequestsPerHour       = builder.comment("Max requests per player per hour (0 = unlimited).").defineInRange("requests_per_hour", AiConfig.requestsPerHour, 0, Integer.MAX_VALUE);
+            aiRequestsPerDay        = builder.comment("Max requests per player per day (0 = unlimited).").defineInRange("requests_per_day", AiConfig.requestsPerDay, 0, Integer.MAX_VALUE);
+            aiMaxGlobalConcurrent   = builder.comment("Max AI requests in flight simultaneously across all players (0 = unlimited).").defineInRange("max_global_concurrent", AiConfig.maxGlobalConcurrent, 0, Integer.MAX_VALUE);
+            aiMaxMessageChars       = builder.comment("Maximum characters in a single message.").defineInRange("max_message_chars", AiConfig.maxMessageChars, 100, 32000);
+            aiQueueOnLimit          = builder.comment("Queue requests that exceed rate limits instead of failing immediately.").define("queue_on_limit", AiConfig.queueOnLimit);
+            aiQueueTimeoutSeconds   = builder.comment("Seconds to wait in queue before returning a rate-limit error.").defineInRange("queue_timeout_seconds", AiConfig.queueTimeoutSeconds, 1, 300);
+
+            builder.comment("Response moderation/validation via your proxy server.").push("moderation");
+            aiModEnabled       = builder.comment("Enable moderation of AI responses before delivery to the player.").define("enabled", AiConfig.validation.enabled);
+            aiModEndpoint      = builder.comment("URL of your moderation proxy endpoint.").define("endpoint", AiConfig.validation.endpoint);
+            aiModApiKey        = builder.comment("API key for the moderation endpoint.").define("api_key", "");
+            aiModFormat        = builder.comment("Moderation format: CHAT or OPENAI_MODERATION.").define("format", AiConfig.validation.format.name());
+            aiModChatPrompt    = builder.comment("Prompt sent to the moderation model in CHAT mode.").define("chat_prompt", AiConfig.validation.chatPrompt);
+            aiModChatModel     = builder.comment("Model used in CHAT moderation mode.").define("chat_model", AiConfig.validation.chatModel);
+            aiModMaxRetries    = builder.comment("Max re-generation attempts when moderation fails.").defineInRange("max_retries", AiConfig.validation.maxRetries, 1, 10);
+            aiModTimeoutSeconds = builder.comment("Timeout in seconds for moderation requests.").defineInRange("timeout_seconds", AiConfig.validation.timeoutSeconds, 5, 120);
+            builder.pop(); // moderation
+
+            builder.pop(); // ai
         }
 
         serverSpec = builder.build(ConfigSpec::syncServer);
@@ -439,6 +513,49 @@ public final class ConfigSpec {
         // Terminal size
         Config.monitorWidth = monitorWidth.get();
         Config.monitorHeight = monitorHeight.get();
+
+        // AI API
+        if (aiEnabled != null) {
+            AiConfig.enabled                    = aiEnabled.get();
+            AiConfig.endpoint                   = aiEndpoint.get();
+            AiConfig.serverApiKey               = aiApiKey.get();
+            AiConfig.defaultModel               = aiDefaultModel.get();
+            AiConfig.defaultResponseLanguage    = aiDefaultLanguage.get();
+            AiConfig.allowAdditionalSystemContext = aiAllowContext.get();
+            AiConfig.maxContextStringChars      = aiMaxContextStringChars.get();
+            AiConfig.systemPrompt               = aiSystemPrompt.get();
+            AiConfig.errorAssistantPrompt       = aiErrorPrompt.get();
+            AiConfig.errorHintEnabled           = aiErrorHintEnabled.get();
+            AiConfig.requireHttps               = aiRequireHttps.get();
+            AiConfig.maxContextTokens           = aiMaxContextTokens.get();
+            AiConfig.maxResponseTokens          = aiMaxResponseTokens.get();
+            AiConfig.requestsPerMinute          = aiRequestsPerMinute.get();
+            AiConfig.requestsPerHour            = aiRequestsPerHour.get();
+            AiConfig.requestsPerDay             = aiRequestsPerDay.get();
+            AiConfig.maxGlobalConcurrent        = aiMaxGlobalConcurrent.get();
+            AiConfig.maxMessageChars            = aiMaxMessageChars.get();
+            AiConfig.queueOnLimit               = aiQueueOnLimit.get();
+            AiConfig.queueTimeoutSeconds        = aiQueueTimeoutSeconds.get();
+
+            AiConfig.validation.enabled         = aiModEnabled.get();
+            AiConfig.validation.endpoint        = aiModEndpoint.get();
+            AiConfig.validation.apiKey          = aiModApiKey.get();
+            AiConfig.validation.chatPrompt      = aiModChatPrompt.get();
+            AiConfig.validation.chatModel       = aiModChatModel.get();
+            AiConfig.validation.maxRetries      = aiModMaxRetries.get();
+            AiConfig.validation.timeoutSeconds  = aiModTimeoutSeconds.get();
+            try {
+                AiConfig.validation.format = AiConfig.ModerationFormat.valueOf(
+                    aiModFormat.get().toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException ignored) {}
+
+            try { AiConfig.validate(); }
+            catch (IllegalStateException e) {
+                org.apache.logging.log4j.LogManager.getLogger(ConfigSpec.class)
+                    .error("[AI] Config validation failed — AI disabled: {}", e.getMessage());
+                AiConfig.enabled = false;
+            }
+        }
     }
 
     public static void syncClient(@Nullable Path path) {

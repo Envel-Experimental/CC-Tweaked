@@ -57,8 +57,17 @@ public final class CyrillicFontPatcher {
     private CyrillicFontPatcher() {}
 
     /**
+     * Called by the Fabric resource reload listener on every resource pack reload.
+     * Resets the {@link #patched} flag so the atlas is re-built with the newly loaded font.
+     */
+    public static void onReload() {
+        patched = false;
+        patch();
+    }
+
+    /**
      * Apply the Cyrillic atlas patch.
-     * Safe to call multiple times — only runs once per session.
+     * Safe to call multiple times — only runs once per session (guarded by {@link #patched}).
      * Must be called on the render/client thread.
      */
     public static void patch() {

@@ -29,24 +29,35 @@
 
 ### Реализация
 - [/] A7.  Создать расширенный `term_font.png` 512×256 (32 колонки × 16 строк; кириллица в правой половине)
-- [x] A8.  Создать `CyrillicFontPatcher.java` — runtime патчер атласа
-- [ ] A9.  Зарегистрировать `CyrillicFontPatcher` в `ComputerCraftClient.init()` (Fabric client init)
-- [x] A10. `FixedWidthFontRenderer.java` — убрать clamp; пересчитать UV: `column = index % COLS`, `row = index / COLS`, `ATLAS_HEIGHT = 256f`
+- [x] A8.  `CyrillicFontPatcher.java` — runtime патч атласа: копирует оригинал 256×256 в левую половину, извлекает кириллицу из MC Font в правую. `onReload()` для перезагрузки ресурсов.
+- [x] A9.  Зарегистрирован в `ComputerCraftClient.init()` через `ResourceManagerHelper` reload listener (запускается после каждой загрузки ресурсов) ✓
+- [x] A10. `FixedWidthFontRenderer.java` — убран clamp; UV: `column = index % COLS`, `row = index / COLS`, `ATLAS_HEIGHT = 256f` ✓
 - [x] A11. `DirectFixedWidthFontRenderer.java` — идентичные правки ✓
-- [ ] A12. Monitor VBO / shader путь — verify нет clamp-а (подтверждено что clamp только в drawString)
-- [x] A13. `NetworkedTerminal.write()` — мигрировать текстовые строки на UTF-16 BE (2 байта на символ) с version flag ✓
-- [x] A14. `NetworkedTerminal.read()` — обратная десериализация UTF-16 BE с legacy fallback ✓
-- [x] A15. `StringUtil` — ввод/ввод/буфер обмена кириллица: `unicodeToTerminal`, `isTypableChar`, `getClipboardString` ✓
-- [x] A16. `InputHandler` → весь pipeline `charTyped` обновлён до `int` (TerminalWidget, ClientInputHandler, KeyEventServerMessage, ServerInputState) ✓
-- [ ] A17. `ServerInputState.charTyped(byte)` → `int` — последнее звено на сервере, найдено в B8 ниже
+- [x] A12. Monitor VBO путь — аудит показал: clamp только в `drawString()` обоих рендереров. Оба починены. Shader-путь clamp не использует. ✓
+- [x] A13. `NetworkedTerminal.write()` — UTF-16 BE с VERSION_UTF16 (0x02) flag ✓
+- [x] A14. `NetworkedTerminal.read()` — обратная десериализация UTF-16 BE с legacy fallback (VERSION_LEGACY) ✓
+- [x] A15. `StringUtil` — `unicodeToTerminal` пропускает U+0400..U+04FF; `isTypableChar` принимает до 0x04FF; `getClipboardString` кодирует UTF-16 LE ✓
+- [x] A16. Input pipeline полностью обновлён до `char`/`int`:
+          - `InputHandler.charTyped(byte)` → `charTyped(int)`
+          - `TerminalWidget.charTyped` — нет `(byte)` каста
+          - `ClientInputHandler.charTyped` — `int`
+          - `KeyEventServerMessage` — нет `(byte)` каста
+          - `ServerInputState.charTyped(byte)` → `charTyped(int)`, cast `(char)` для ComputerEvents
+          - `ComputerEvents.charTyped(Receiver, byte)` → `charTyped(Receiver, char)`, UTF-8 encoding
+          - `standalone/InputState.onCharEvent` — `(char)` cast
+          - `ServerInputState.isValidClipboard` — читает UTF-16 LE пары ✓
+- [x] A17. `ServerInputState.charTyped` и `ComputerEvents.charTyped` — все обновлено, `char` до самого дна pipeline ✓
 
 ### Тесты (обязательно перед merge)
-- [ ] A18. `CyrillicTerminalTest` — Lua unit: `term.write("Привет")` → буфер == `"Привет"` (не `"??????"`)
-- [ ] A19. `CyrillicTerminalTest` — render unit: mock QuadEmitter записывает `(charIndex, uvX, uvY)`, assert `П` (cp 1055) → column=31, row=32 (расширенный атлас)
-- [ ] A20. `TerminalNetworkEncodingTest` — encode → decode round-trip с кириллицей, assert равенство
-- [ ] A21. `TerminalNetworkEncodingTest` — version flag: legacy пакет (без VERSION_UTF16) → graceful fallback
-- [ ] A22. Game test (Kotlin) — компьютер пишет `"Привет мир"`, capture TerminalState, assert корректные символы
-- [ ] A23. Регрессия: ASCII 0-127 и Latin-1 128-255 после рефакторинга рендерятся корректно
+- [x] A18. `CyrillicTerminalTest` — `term.write("Привет")` → `getLine(0)` == `"Привет    "` (не `"??????"`)
+        → `projects/core/src/test/.../terminal/CyrillicTerminalTest.java`
+- [x] A19. `CyrillicFontAtlasTest` — UV координаты для всех кириллических cp: v1 >= 0.5 (нижняя половина атласа), u/v в [0,1], u2>u1, v2>v1. Конкретный assert для П (U+041F). Без GL контекста.
+        → `projects/common/src/test/.../render/text/CyrillicFontAtlasTest.java`
+- [x] A20. `TerminalNetworkEncodingTest` — encode → decode round-trip с кириллицей и mixed строками
+        → `projects/common/src/test/.../terminal/TerminalNetworkEncodingTest.java`
+- [x] A21. `TerminalNetworkEncodingTest.legacyVersionFallback` — legacy пакет VERSION_LEGACY (0x01) → читается без исключения
+- [x] A22. `CyrillicTerminalTest.cyrillic_on_multiple_lines` — multi-line Cyrillic write/read
+- [x] A23. Регрессия: `CyrillicTerminalTest` — ASCII 0x20-0x7E и Latin-1 0xA0-0xFE корректно после рефакторинга. `CyrillicStringUtilTest` — граничные значения блока U+03FF/U+0400/U+04FF/U+0500
 
 ---
 
@@ -59,19 +70,9 @@
 - [ ] B4. Изучить `HttpRequest.java` — паттерн async запроса и event firing
 
 ### Конфиг
-- [x] B5.  `AiConfig.java` — создан в `core/`, включает:
-  - master switch `enabled = false`
-  - `endpoint` + `serverApiKey` (package-private, не в пакетах)
-  - `defaultModel` + `allowedModels` (whitelist с `ModelEntry` record)
-  - `defaultResponseLanguage = "Russian"` + `{language}` placeholder в промтах
-  - `allowAdditionalSystemContext` + `maxContextStringChars`
-  - `systemPrompt` и `errorAssistantPrompt` с `{language}`
-  - rate limits (per-minute/hour/day, global concurrent)
-  - `ValidationConfig` — moderation proxy (endpoint, apiKey, format: CHAT/OPENAI_MODERATION)
-  - `validate()` — проверяет все инварианты при загрузке конфига
-  - `interpolatePrompt(prompt, language)` helper
-- [ ] B6.  Добавить `[ai]` секцию в `ConfigSpec.java` — builder паттерн, `builder.push("ai")`
-- [ ] B7.  `syncServer()` в `ConfigSpec` — синхронизировать все поля в `AiConfig`
+- [x] B5.  `AiConfig.java` — создан в `core/`, включает: master switch, endpoint, serverApiKey, allowedModels, language, prompts, rate limits, ValidationConfig, validate()
+- [x] B6.  `[ai]` секция в `ConfigSpec.java` — все поля с комментариями, builder.push("ai"), подсекция `moderation` ✓
+- [x] B7.  `syncServer()` — типизированные `ConfigFile.Value<T>` поля, `.get()` → AiConfig ✓. Валидация в syncServer (disabled при fail)
 
 ### Rate Limiter (security-critical)
 - [ ] B8.  Создать `AiRateLimiter.java` в `core/apis/ai/`
@@ -173,13 +174,14 @@
 ## Документация
 
 - [x] `docs/ai/proxy-integration.md` — полный guide: форматы, конфиг, security, Lua quick reference
+- [x] `ARCHITECTURE.md` — накопленные знания: wire format, input pipeline, StringUtil правила, AiConfig инварианты, тест-паттерны, open gaps
 
 ---
 
 ## Следующие шаги (приоритет)
 
-1. `ServerInputState.charTyped` → `int` (A17, последнее звено input pipeline)
-2. `ConfigSpec.java` — зарегистрировать `[ai]` секцию (B6, B7)
-3. `ComputerExecutor` — зарегистрировать `AiAPI` (C17)
-4. `AiRateLimiter.java` — sliding window rate limiter (B8-B12)
-5. Тесты A18-A23, B13-B18, C19-C27
+1. **Тесты B13-B18** — AiRateLimiter + AiConfig тесты (критично)
+2. **Тесты C19-C27** — AI API security tests
+3. **A7** — Полная растеризация кириллицы в `CyrillicFontPatcher`
+4. **D блок** — Пакеты + Error Hint UI
+5. **E блок** — Security audit

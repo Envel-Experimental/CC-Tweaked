@@ -51,7 +51,7 @@ public class InputState {
 
     public void onCharEvent(int codepoint) {
         var terminalChar = StringUtil.unicodeToTerminal(codepoint);
-        if (StringUtil.isTypableChar(terminalChar)) ComputerEvents.charTyped(computer, (byte) terminalChar);
+        if (StringUtil.isTypableChar(terminalChar)) ComputerEvents.charTyped(computer, (char) terminalChar);
     }
 
     public void onKeyEvent(long window, int key, int action, int modifiers) {

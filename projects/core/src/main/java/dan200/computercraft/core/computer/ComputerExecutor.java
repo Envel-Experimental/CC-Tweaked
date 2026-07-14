@@ -162,6 +162,7 @@ final class ComputerExecutor implements ComputerScheduler.Worker {
         addApi(new PeripheralAPI(environment, context.peripheralMethods()));
         addApi(new OSAPI(environment));
         if (CoreConfig.httpEnabled) addApi(new HTTPAPI(environment));
+        if (dan200.computercraft.core.AiConfig.enabled) addApi(new dan200.computercraft.core.apis.ai.AiAPI(environment));
     }
 
     @Override

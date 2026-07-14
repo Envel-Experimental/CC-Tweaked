@@ -70,6 +70,7 @@ public final class AiRequestHandler {
                 doRequest(env, id, messages, model, options);
             } finally {
                 GLOBAL_CONCURRENT.decrementAndGet();
+                AiRateLimiter.INSTANCE.release();
             }
         });
     }

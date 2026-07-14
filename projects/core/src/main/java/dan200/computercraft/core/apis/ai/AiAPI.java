@@ -57,9 +57,18 @@ public class AiAPI implements ILuaAPI {
 
     private final IAPIEnvironment env;
     private final AtomicInteger requestCounter = new AtomicInteger(0);
+    /**
+     * Stable per-computer UUID derived from the computer ID.
+     * Used as the rate-limiter key. On servers with the network D-layer,
+     * this will be replaced with the actual player UUID from the server.
+     */
+    private final java.util.UUID rateLimitKey;
 
     public AiAPI(IAPIEnvironment env) {
         this.env = env;
+        this.rateLimitKey = java.util.UUID.nameUUIDFromBytes(
+            ("cc-computer-" + env.getComputerID()).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
     }
 
     @Override
@@ -238,21 +247,25 @@ public class AiAPI implements ILuaAPI {
     // ---- Internal dispatch ----
 
     private int dispatchRequest(List<AiMessage> messages, RequestOptions options) throws LuaException {
-        // Validate model selection
+        // Rate limit check — runs before any async work.
+        var limitResult = AiRateLimiter.INSTANCE.check(rateLimitKey);
+        if (limitResult != AiRateLimiter.LimitResult.ALLOWED) {
+            throw new LuaException(limitResult.errorMessage());
+        }
+
+        // Validate model selection.
         var model = options.useErrorPrompt()
             ? AiConfig.getDefaultModel()
             : resolveModel(options.modelId());
 
-        // Sanitize each message content
+        // Sanitize each message content.
         var sanitized = new ArrayList<AiMessage>(messages.size());
         for (var msg : messages) {
             sanitized.add(new AiMessage(msg.role(), sanitize(msg.content(), AiConfig.maxMessageChars)));
         }
 
         var id = requestCounter.incrementAndGet();
-
-        // Dispatch asynchronously via AiRequestHandler (implemented in Bloc C).
-        // For now: enqueue to the handler which will fire ai_response/ai_error events.
+        // Dispatch asynchronously; the handler must call AiRateLimiter.INSTANCE.release() on finish.
         AiRequestHandler.dispatch(env, id, sanitized, model, options);
 
         return id;

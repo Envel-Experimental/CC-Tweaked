@@ -15,6 +15,7 @@ import dan200.computercraft.shared.network.client.ClientNetworkContext;
 import dan200.computercraft.shared.peripheral.modem.wired.CableBlock;
 import dan200.computercraft.shared.platform.FabricConfigFile;
 import dan200.computercraft.shared.platform.FabricMessageType;
+import dan200.computercraft.client.font.CyrillicFontPatcher;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -24,10 +25,15 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPickBlockGatherCallback;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -49,6 +55,22 @@ public class ComputerCraftClient {
         ClientRegistry.registerTurtleModellers(FabricComputerCraftAPIClient::registerTurtleUpgradeModeller);
         ClientRegistry.registerItemColours(ColorProviderRegistry.ITEM::register);
         ClientRegistry.registerMainThread(ItemProperties::register);
+
+        // Register Cyrillic font atlas patcher as a resource reload listener.
+        // Runs after fonts are loaded on startup and on every resource pack reload.
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(
+            new SimpleSynchronousResourceReloadListener() {
+                @Override
+                public ResourceLocation getFabricId() {
+                    return ResourceLocation.fromNamespaceAndPath(ComputerCraftAPI.MOD_ID, "cyrillic_font");
+                }
+
+                @Override
+                public void onResourceManagerReload(ResourceManager manager) {
+                    CyrillicFontPatcher.onReload();
+                }
+            }
+        );
 
         PreparableModelLoadingPlugin.register(CustomModelLoader::prepare, (state, context) -> {
             ClientRegistry.registerExtraModels(context::addModels);

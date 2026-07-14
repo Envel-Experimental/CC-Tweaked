@@ -69,11 +69,10 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
     }
 
     @Override
-    public void charTyped(byte chr) {
-        if (owner.isReadOnly())
-            return;
+    public void charTyped(int chr) {
+        if (owner.isReadOnly()) return;
         if (StringUtil.isTypableChar(chr))
-            ComputerEvents.charTyped(owner.getComputer(), chr);
+            ComputerEvents.charTyped(owner.getComputer(), (char) chr);
     }
 
     @Override
@@ -84,10 +83,19 @@ public class ServerInputState<T extends AbstractContainerMenu & ComputerMenu> im
             ComputerEvents.paste(owner.getComputer(), contents);
     }
 
+    /**
+     * Validate clipboard contents.
+     * The buffer contains UTF-16 LE pairs (low byte, high byte) as produced by
+     * {@link StringUtil#getClipboardString(String)}. Each pair is validated via
+     * {@link StringUtil#isTypableChar(int)}.
+     */
     private static boolean isValidClipboard(ByteBuffer buffer) {
-        for (int i = buffer.position(), max = buffer.limit(); i < max; i++) {
-            if (!StringUtil.isTypableChar(buffer.get(i)))
-                return false;
+        var buf = buffer.duplicate();
+        while (buf.remaining() >= 2) {
+            int low  = buf.get() & 0xFF;
+            int high = buf.get() & 0xFF;
+            int cp   = low | (high << 8);
+            if (!StringUtil.isTypableChar(cp)) return false;
         }
         return true;
     }

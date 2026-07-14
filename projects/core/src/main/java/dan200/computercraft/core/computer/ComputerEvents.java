@@ -28,11 +28,14 @@ public final class ComputerEvents {
      * Type a character on the computer.
      *
      * @param receiver The computer to queue the event on.
-     * @param chr      The character to type.
-     * @see StringUtil#isTypableChar(byte)
+     * @param chr      The Unicode character to type (supports Cyrillic U+0400–U+04FF).
+     * @see StringUtil#isTypableChar(int)
      */
-    public static void charTyped(Receiver receiver, byte chr) {
-        receiver.queueEvent("char", new Object[]{ new byte[]{ chr } });
+    public static void charTyped(Receiver receiver, char chr) {
+        // Encode as UTF-8 so Lua receives a properly-encoded string.
+        // ASCII characters remain single-byte; Cyrillic becomes 2-byte UTF-8.
+        var bytes = String.valueOf(chr).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        receiver.queueEvent("char", new Object[]{ bytes });
     }
 
     /**
