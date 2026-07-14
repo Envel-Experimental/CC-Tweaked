@@ -51,6 +51,10 @@ public abstract class TermMethods {
             var decoded = decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString();
             text = decoded; // Valid UTF-8, use decoded string
         } catch (java.nio.charset.CharacterCodingException e) {
+            System.out.println("DECODE ERROR! Input length: " + bytes.length);
+            for (byte b : bytes) System.out.printf("%02X ", b);
+            System.out.println();
+            e.printStackTrace();
             // Not valid UTF-8, use original text (ISO-8859-1)
         }
 

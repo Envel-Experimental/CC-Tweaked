@@ -101,8 +101,9 @@ class CyrillicStringUtilTest {
         // Decode UTF-16 LE back to String to verify content.
         var bytes = new byte[result.remaining()];
         result.duplicate().get(bytes);
-        // Must contain "Привет" (first line only) encoded as UTF-16 LE.
-        assertTrue(result.remaining() >= "Привет".length() * 2,
-            "Clipboard must contain at least the Cyrillic first line");
+        // Must contain "Привет" (first line only) encoded as UTF-8.
+        var expectedBytes = "Привет".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(result.remaining() >= expectedBytes.length,
+            "Clipboard must contain at least the Cyrillic first line encoded as UTF-8");
     }
 }

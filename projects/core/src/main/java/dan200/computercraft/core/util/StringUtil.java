@@ -131,17 +131,16 @@ public final class StringUtil {
      * @return The encoded clipboard text as a ByteBuffer of UTF-16 LE pairs.
      */
     public static ByteBuffer getClipboardString(String clipboard) {
-        var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length())];
-        var idx = 0;
-
+        var builder = new StringBuilder();
         var iterator = clipboard.codePoints().iterator();
-        while (iterator.hasNext() && idx < output.length) {
+        while (iterator.hasNext() && builder.length() < MAX_PASTE_LENGTH) {
             var chr = unicodeToTerminal(iterator.next());
             if (chr < 0) continue; // Strip out unconvertible characters
-            if (!isTypableChar(chr)) break; // Stop at untypable ones.
-            output[idx++] = (byte) chr; // Paste natively supports 8-bit encoded characters. Cyrillic will be clamped. To paste Cyrillic, users use external programs.
+            if (!isTypableChar(chr)) break; // Stop at untypable ones (e.g. newline).
+            builder.appendCodePoint(chr);
         }
 
-        return ByteBuffer.wrap(output, 0, idx).asReadOnlyBuffer();
+        var bytes = builder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
     }
 }

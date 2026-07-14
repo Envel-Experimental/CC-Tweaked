@@ -143,18 +143,15 @@ public final class CyrillicFontPatcher {
     /**
      * Render a single codepoint from Minecraft's font into the atlas at position {@code slotIndex}.
      *
-     * <p>In the 32-column layout:
+     * <p>In the 32-column layout (for indices 256-511):
      * <ul>
-     *   <li>column = slotIndex % 32</li>
-     *   <li>row    = slotIndex / 32</li>
+     *   <li>column = 16 + (slotIndex % 16)</li>
+     *   <li>row    = (slotIndex - 256) / 16</li>
      * </ul>
-     * The glyph is drawn at pixel (1 + col*CELL_W, 1 + row*CELL_H) with 1px of inset padding.
      */
-    @SuppressWarnings("unused")
-    private static void renderGlyph(NativeImage atlas, Font mcFont, int codepoint, int slotIndex) {
-        // Latin is 0..255 (cols 0..15). Cyrillic is 256..511 (cols 16..31).
-        var col = (slotIndex < 256) ? (slotIndex % 16) : (16 + (slotIndex % 16));
-        var row = (slotIndex < 256) ? (slotIndex / 16) : ((slotIndex - 256) / 16);
+    private static void renderGlyph(NativeImage atlas, Font mcFont, int cp, int slotIndex) {
+        var col = 16 + (slotIndex % 16);
+        var row = (slotIndex - 256) / 16;
 
         var destX = 1 + col * CELL_W;
         var destY = 1 + row * CELL_H;
@@ -196,7 +193,7 @@ public final class CyrillicFontPatcher {
 
         } catch (Exception e) {
             // Individual glyph failure is non-fatal — just leave cell empty (renders as blank, not ?).
-            LOG.trace("[CC:Cyrillic] Skipping glyph U+{} — {}", Integer.toHexString(codepoint), e.getMessage());
+            LOG.trace("[CC:Cyrillic] Skipping glyph U+{} — {}", Integer.toHexString(cp), e.getMessage());
         }
     }
 

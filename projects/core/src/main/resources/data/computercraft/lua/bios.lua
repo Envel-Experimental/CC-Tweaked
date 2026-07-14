@@ -31,7 +31,7 @@ _G.bit = {
 
 -- Install lua parts of the os api
 function os.version()
-    return "CraftOS 1.9"
+    return "FoxOS 2.0"
 end
 
 function os.pullEventRaw(sFilter)
@@ -152,14 +152,36 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
 
     term.setCursorBlink(true)
 
+    local function char_length(b)
+        if b < 0x80 then return 1
+        elseif b < 0xE0 then return 2
+        elseif b < 0xF0 then return 3
+        else return 4 end
+    end
+
+    local function split_string(s)
+        local t = {}
+        local i = 1
+        local len = #s
+        while i <= len do
+            local b = string.byte(s, i)
+            local clen = char_length(b)
+            if i + clen - 1 > len then clen = len - i + 1 end
+            table.insert(t, string.sub(s, i, i + clen - 1))
+            i = i + clen
+        end
+        return t
+    end
+
     local sLine
     if type(_sDefault) == "string" then
         sLine = _sDefault
     else
         sLine = ""
     end
+    local tLine = split_string(sLine)
     local nHistoryPos
-    local nPos, nScroll = #sLine, 0
+    local nPos, nScroll = #tLine, 0
     if _sReplaceChar then
         _sReplaceChar = string.sub(_sReplaceChar, 1, 1)
     end
@@ -167,7 +189,7 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
     local tCompletions
     local nCompletion
     local function recomplete()
-        if _fnComplete and nPos == #sLine then
+        if _fnComplete and nPos == #tLine then
             tCompletions = _fnComplete(sLine)
             if tCompletions and #tCompletions > 0 then
                 nCompletion = 1
@@ -202,9 +224,9 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
         term.setCursorPos(sx, cy)
         local sReplace = _bClear and " " or _sReplaceChar
         if sReplace then
-            term.write(string.rep(sReplace, math.max(#sLine - nScroll, 0)))
+            term.write(string.rep(sReplace, math.max(#tLine - nScroll, 0)))
         else
-            term.write(string.sub(sLine, nScroll + 1))
+            term.write(table.concat(tLine, "", nScroll + 1))
         end
 
         if nCompletion then
@@ -244,8 +266,11 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
 
             -- Find the common prefix of all the other suggestions which start with the same letter as the current one
             local sCompletion = tCompletions[nCompletion]
-            sLine = sLine .. sCompletion
-            nPos = #sLine
+            for _, c in ipairs(split_string(sCompletion)) do
+                table.insert(tLine, c)
+            end
+            sLine = table.concat(tLine)
+            nPos = #tLine
 
             -- Redraw
             recomplete()
@@ -257,16 +282,22 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
         if sEvent == "char" then
             -- Typed key
             clear()
-            sLine = string.sub(sLine, 1, nPos) .. param .. string.sub(sLine, nPos + 1)
-            nPos = nPos + 1
+            for _, c in ipairs(split_string(param)) do
+                table.insert(tLine, nPos + 1, c)
+                nPos = nPos + 1
+            end
+            sLine = table.concat(tLine)
             recomplete()
             redraw()
 
         elseif sEvent == "paste" then
             -- Pasted text
             clear()
-            sLine = string.sub(sLine, 1, nPos) .. param .. string.sub(sLine, nPos + 1)
-            nPos = nPos + #param
+            for _, c in ipairs(split_string(param)) do
+                table.insert(tLine, nPos + 1, c)
+                nPos = nPos + 1
+            end
+            sLine = table.concat(tLine)
             recomplete()
             redraw()
 
@@ -291,7 +322,7 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
 
             elseif param == keys.right then
                 -- Right
-                if nPos < #sLine then
+                if nPos < #tLine then
                     -- Move right
                     clear()
                     nPos = nPos + 1
@@ -342,9 +373,11 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
                     end
                     if nHistoryPos then
                         sLine = _tHistory[nHistoryPos]
-                        nPos, nScroll = #sLine, 0
+                        tLine = split_string(sLine)
+                        nPos, nScroll = #tLine, 0
                     else
                         sLine = ""
+                        tLine = {}
                         nPos, nScroll = 0, 0
                     end
                     uncomplete()
@@ -356,7 +389,8 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
                 -- Backspace
                 if nPos > 0 then
                     clear()
-                    sLine = string.sub(sLine, 1, nPos - 1) .. string.sub(sLine, nPos + 1)
+                    table.remove(tLine, nPos)
+                    sLine = table.concat(tLine)
                     nPos = nPos - 1
                     if nScroll > 0 then nScroll = nScroll - 1 end
                     recomplete()
@@ -374,18 +408,19 @@ function read(_sReplaceChar, _tHistory, _fnComplete, _sDefault)
 
             elseif param == keys.delete then
                 -- Delete
-                if nPos < #sLine then
+                if nPos < #tLine then
                     clear()
-                    sLine = string.sub(sLine, 1, nPos) .. string.sub(sLine, nPos + 2)
+                    table.remove(tLine, nPos + 1)
+                    sLine = table.concat(tLine)
                     recomplete()
                     redraw()
                 end
 
             elseif param == keys["end"] then
                 -- End
-                if nPos < #sLine then
+                if nPos < #tLine then
                     clear()
-                    nPos = #sLine
+                    nPos = #tLine
                     recomplete()
                     redraw()
                 end
