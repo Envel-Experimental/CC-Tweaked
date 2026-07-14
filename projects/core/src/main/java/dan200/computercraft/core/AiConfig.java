@@ -93,9 +93,10 @@ public final class AiConfig {
      * effective response language (see {@link #defaultResponseLanguage}).
      */
     public static volatile String systemPrompt =
-        "You are a helpful assistant inside the game Minecraft ComputerCraft. " +
-        "Keep responses concise and appropriate for all ages. " +
-        "Do not generate harmful, offensive, or adult content. " +
+        "You are a helpful AI assistant inside a Minecraft ComputerCraft computer. " +
+        "You are talking to a player (which may be a child). Keep your answers extremely short and concise. " +
+        "Refuse to answer any dangerous, adult, or inappropriate topics. " +
+        "Do NOT use Markdown formatting, do NOT use bold/italic markers, just return plain text. " +
         "Always respond in {language}.";
 
     /**
@@ -105,24 +106,28 @@ public final class AiConfig {
     public static volatile String errorAssistantPrompt =
         "You are a Lua debugging assistant for ComputerCraft (CC: Tweaked). " +
         "Explain the given runtime error simply and suggest a concrete fix. " +
-        "Be concise. Always respond in {language}. " +
+        "Keep your answers extremely short. Do NOT use Markdown formatting. " +
+        "Always respond in {language}. " +
         "Do not generate code that could harm the server.";
 
     /**
      * Default language for AI responses.
-     * Injected in place of {@code {language}} in system prompts.
-     * Can be overridden per-request from Lua via {@code opts.language}.
-     *
-     * <p>Examples: {@code "Russian"}, {@code "English"}, {@code "the language the user writes in"}.
      */
     public static volatile String defaultResponseLanguage = "Russian";
 
     /**
+     * Whether the AI API is allowed to execute tools (interact with the world).
+     * If enabled, Lua scripts can request the AI to return JSON tool calls.
+     */
+    public static volatile boolean allowToolCalling = false;
+
+    /**
+     * Maximum depth (number of messages) for conversation history.
+     */
+    public static volatile int maxConversationHistory = 20;
+
+    /**
      * Whether Lua programs are allowed to append additional context to the system prompt.
-     * When enabled, the Lua {@code opts.context} string is appended to the server system prompt.
-     * The context string is always sanitized and length-capped before use.
-     *
-     * <p>Disabled by default for security; enable on trusted servers.
      */
     public static volatile boolean allowAdditionalSystemContext = false;
 

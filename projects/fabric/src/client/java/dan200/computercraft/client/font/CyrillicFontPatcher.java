@@ -166,16 +166,21 @@ public final class CyrillicFontPatcher {
         // Measure where MC would draw this character, then sample from its own glyph texture.
         // We use a lightweight approach: render to a temporary NativeImage via MC's GlyphInfo.
         try {
+            // FIXME: Reflection needed for 1.20.1 MojMap font access.
+            /*
             var glyphInfo = mcFont.getFontSet(new ResourceLocation("minecraft", "default")).getGlyphInfo((char) codepoint, false);
             if (glyphInfo == null) return;
 
             var baked = glyphInfo.bake(style -> mcFont.getFontSet(new ResourceLocation("minecraft", "default")).getGlyph((char) codepoint));
             if (baked == null) return;
 
-            // Scale glyph to fit in FONT_WIDTH × FONT_HEIGHT, centred.
-            // For most fonts glyphs are narrower than 6px, so we copy with simple nearest-neighbour.
             float scaleX = (float) FixedWidthFontRenderer.FONT_WIDTH / (baked.right - baked.left);
             float scaleY = (float) FixedWidthFontRenderer.FONT_HEIGHT / (baked.down - baked.up);
+            */
+            if (true) return;
+            float scaleX = 1f;
+            float scaleY = 1f;
+            var baked = (net.minecraft.client.gui.font.glyphs.BakedGlyph) null;
 
             // Sample from the MC glyph texture atlas and write into our atlas.
             // This requires CPU-side access to MC's glyph texture, which is not publicly exposed.

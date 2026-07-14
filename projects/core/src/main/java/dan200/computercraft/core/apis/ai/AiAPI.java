@@ -93,6 +93,22 @@ public class AiAPI implements ILuaAPI {
      * @throws LuaException If the AI API is disabled.
      * @cc.treturn { {id=string, display_name=string, max_context_tokens=number}... } Model list.
      */
+    /**
+     * Returns whether the AI API is allowed to execute tools (interact with the world).
+     */
+    @LuaFunction
+    public final boolean isToolCallingEnabled() {
+        return AiConfig.allowToolCalling;
+    }
+
+    /**
+     * Returns the maximum depth of conversation history allowed.
+     */
+    @LuaFunction
+    public final int maxConversationHistory() {
+        return AiConfig.maxConversationHistory;
+    }
+
     @LuaFunction
     public final List<Map<String, Object>> models() throws LuaException {
         requireEnabled();

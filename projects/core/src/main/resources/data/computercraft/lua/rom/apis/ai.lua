@@ -65,6 +65,18 @@ function defaultModel()
     return _ai.defaultModel()
 end
 
+--- Return whether the server allows the AI to execute tools (interact with the world).
+-- @treturn boolean
+function isToolCallingEnabled()
+    return _ai.isToolCallingEnabled()
+end
+
+--- Return the maximum allowed conversation history depth.
+-- @treturn number
+function maxConversationHistory()
+    return _ai.maxConversationHistory()
+end
+
 --- Add a message to a conversation history table.
 -- Convenience function so you don't have to manually build the table structure.
 --
@@ -81,10 +93,48 @@ function addMessage(history, role, content)
     expect(1, history, "table")
     expect(2, role, "string")
     expect(3, content, "string")
-    if role ~= "user" and role ~= "assistant" then
-        error("bad argument #2: role must be 'user' or 'assistant', got '" .. role .. "'", 2)
+    if role ~= "user" and role ~= "assistant" and role ~= "tool" then
+        error("bad argument #2: role must be 'user', 'assistant' or 'tool', got '" .. role .. "'", 2)
     end
     history[#history + 1] = { role = role, content = content }
+    
+    local max_hist = maxConversationHistory()
+    while #history > max_hist do
+        table.remove(history, 1)
+    end
+end
+
+--- Read a local file and either attach it to the history or return its content as a string.
+-- @tparam[opt] table history The message history table (optional).
+-- @tparam string path        The path to the file on the computer.
+-- @treturn string            The formatted file content.
+function attachFile(history_or_path, path)
+    local history, filepath
+    if type(history_or_path) == "table" and type(path) == "string" then
+        history = history_or_path
+        filepath = path
+    elseif type(history_or_path) == "string" then
+        history = nil
+        filepath = history_or_path
+    else
+        error("Invalid arguments. Expected (history, path) or (path)", 2)
+    end
+
+    if not fs.exists(filepath) or fs.isDir(filepath) then
+        error("File not found or is a directory: " .. filepath, 2)
+    end
+    
+    local file = fs.open(filepath, "r")
+    if file then
+        local content = file.readAll()
+        file.close()
+        local formatted = "File content of " .. filepath .. ":\n```\n" .. content .. "\n```"
+        if history then
+            addMessage(history, "user", formatted)
+        end
+        return formatted
+    end
+    return ""
 end
 
 --- Send a simple one-shot question and **block** until the response arrives.
@@ -259,4 +309,84 @@ function _awaitId(id, timeout)
             return nil, "AI request timed out after " .. timeout .. "s"
         end
     end
+end
+
+--- Execute a prompt with optional tools (redstone, gps, fs).
+-- Extracts `<tool>{...}</tool>` from the response and executes them safely.
+-- @tparam table history The conversation history
+-- @tparam table opts    Request options (model, temperature, etc). Can include `tools = {"redstone", "gps", "fs"}`
+-- @treturn string|nil   The cleaned text response, or nil on error
+-- @treturn nil|string   Error reason
+function executeWithTools(history, opts)
+    expect(1, history, "table")
+    opts = opts or {}
+    
+    if opts.tools and #opts.tools > 0 then
+        if not isToolCallingEnabled() then
+            error("Tool calling is disabled in server config (AiConfig.allowToolCalling).", 2)
+        end
+        
+        local toolInstructions = "You have access to the following tools: " .. table.concat(opts.tools, ", ") .. ".\n"
+        toolInstructions = toolInstructions .. "To use a tool, include a JSON object inside <tool> and </tool> tags. Do not use markdown for the tags.\n"
+        toolInstructions = toolInstructions .. "Example: <tool>{\"tool\":\"redstone\", \"side\":\"right\", \"on\":true}</tool>\n"
+        toolInstructions = toolInstructions .. "Example: <tool>{\"tool\":\"gps\"}</tool>\n"
+        
+        opts.context = (opts.context and (opts.context .. "\n\n") or "") .. toolInstructions
+    end
+    
+    local text, err = chat(history, opts)
+    if not text then return nil, err end
+    
+    local cleaned_text = ""
+    local last_idx = 1
+    
+    -- Extract and execute tools
+    for before, tool_json, after in text:gmatch("(.-)<tool>(.-)</tool>()") do
+        cleaned_text = cleaned_text .. before
+        last_idx = after
+        
+        local tool_data = textutils.unserializeJSON(tool_json)
+        if type(tool_data) == "table" and tool_data.tool then
+            print("[System: AI is executing tool '" .. tool_data.tool .. "']")
+            
+            local ok, tool_err = pcall(function()
+                if tool_data.tool == "redstone" then
+                    if type(tool_data.side) == "string" and type(tool_data.on) == "boolean" then
+                        redstone.setOutput(tool_data.side, tool_data.on)
+                        print(" -> Redstone on " .. tool_data.side .. " set to " .. tostring(tool_data.on))
+                    end
+                elseif tool_data.tool == "gps" then
+                    local x, y, z = gps.locate(2)
+                    if x then
+                        print(" -> GPS Location: " .. x .. ", " .. y .. ", " .. z)
+                        addMessage(history, "tool", "System: GPS Location is " .. x .. ", " .. y .. ", " .. z)
+                    else
+                        print(" -> GPS Location not available")
+                        addMessage(history, "tool", "System: GPS Location not available")
+                    end
+                elseif tool_data.tool == "fs" then
+                    -- Very basic fs read for demonstration
+                    if type(tool_data.path) == "string" and tool_data.action == "read" then
+                        attachFile(history, tool_data.path)
+                        print(" -> Attached file " .. tool_data.path)
+                    end
+                else
+                    print(" -> Unknown tool: " .. tool_data.tool)
+                end
+            end)
+            if not ok then
+                print(" -> Tool execution failed: " .. tostring(tool_err))
+            end
+        end
+    end
+    
+    cleaned_text = cleaned_text .. text:sub(last_idx)
+    
+    -- Strip any remaining empty space
+    cleaned_text = cleaned_text:gsub("^%s*(.-)%s*$", "%1")
+    
+    -- Ensure the history has the RAW text (with tools) so the AI remembers it called them
+    addMessage(history, "assistant", text)
+    
+    return cleaned_text
 end
