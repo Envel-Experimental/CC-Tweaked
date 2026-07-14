@@ -13,6 +13,7 @@ import dan200.computercraft.shared.network.MessageType;
 import dan200.computercraft.shared.network.NetworkMessages;
 import dan200.computercraft.shared.network.client.AiHintResponseMessage;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /**
@@ -60,26 +61,25 @@ public class AskAiErrorHintMessage extends ComputerServerMessage {
         }
 
         // Send to background worker
-        var model = AiConfig.getModel(AiConfig.defaultModel);
+        var model = AiConfig.getDefaultModel();
         if (model == null) {
             AiRateLimiter.INSTANCE.release();
             return;
         }
 
         // Fire and forget, AiRequestHandler manages executor wrapping.
-        AiRequestHandler.dispatchRequest(
-            new AiAPI.AiMessage("user", "Explain this error: " + truncated),
+        AiRequestHandler.dispatchWithCallbacks(
+            java.util.List.of(new AiAPI.AiMessage("user", "Explain this error: " + truncated)),
             model,
             new AiAPI.RequestOptions(model.id(), 0.7f, AiConfig.maxResponseTokens, null, null, AiConfig.defaultResponseLanguage, true),
             response -> {
                 // S2C network response on success
-                NetworkMessages.sendToPlayer(sender, new AiHintResponseMessage(response.trim()));
+                ServerNetworking.sendToPlayer(new AiHintResponseMessage(response.trim()), sender);
             },
             error -> {
                 // Send back the error as the hint so user knows what went wrong
-                NetworkMessages.sendToPlayer(sender, new AiHintResponseMessage("Error: " + error.getMessage()));
-            },
-            uuid
+                ServerNetworking.sendToPlayer(new AiHintResponseMessage("Error: " + error.getMessage()), sender);
+            }
         );
     }
 

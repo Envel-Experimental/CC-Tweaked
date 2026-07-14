@@ -54,8 +54,10 @@ class AiRequestBuilderTest {
     }
 
     @Test
-    void api_key_is_never_in_json_payload() {
-        AiConfig.serverApiKey = "sk-SUPER-SECRET-KEY-12345";
+    void api_key_is_never_in_json_payload() throws Exception {
+        var keyField = AiConfig.class.getDeclaredField("serverApiKey");
+        keyField.setAccessible(true);
+        keyField.set(null, "sk-SUPER-SECRET-KEY-12345");
         var messages = List.of(new AiAPI.AiMessage("user", "Hello"));
         var json = AiRequestHandler.buildJsonBody(messages, model, defaultOptions);
 

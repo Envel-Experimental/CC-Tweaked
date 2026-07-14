@@ -31,7 +31,7 @@ public final class AiConfig {
      * Bearer token for the proxy server.
      * SECURITY: never serialise this into any C2S or S2C packet.
      */
-    static volatile String serverApiKey = "";
+    public static volatile String serverApiKey = "";
 
     /**
      * Default model used when Lua code does not specify one.
@@ -257,7 +257,8 @@ public final class AiConfig {
          * SECURITY: never serialised into any network packet.
          * If blank, falls back to {@link AiConfig#serverApiKey}.
          */
-        volatile String apiKey = "";
+        /** Moderation API Key (optional). */
+        public String apiKey = "";
 
         /**
          * Request format the mod sends to your moderation endpoint.
@@ -333,7 +334,7 @@ public final class AiConfig {
             .orElseGet(() -> new ModelEntry(defaultModel, defaultModel, 0));
     }
 
-    static String getServerApiKey() {
+    public static String getServerApiKey() {
         return serverApiKey;
     }
 

@@ -35,9 +35,6 @@ public final class AiRequestHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(AiRequestHandler.class);
 
-    /** Global concurrent request counter — guards against DDoS via AI endpoint. */
-    static final AtomicInteger GLOBAL_CONCURRENT = new AtomicInteger(0);
-
     private AiRequestHandler() {}
 
     /**
@@ -57,19 +54,59 @@ public final class AiRequestHandler {
         AiConfig.ModelEntry model,
         AiAPI.RequestOptions options
     ) {
-        // Check global concurrent limit before accepting the request.
-        var concurrent = GLOBAL_CONCURRENT.incrementAndGet();
-        if (concurrent > AiConfig.maxGlobalConcurrent) {
-            GLOBAL_CONCURRENT.decrementAndGet();
-            env.queueEvent(AiAPI.EVENT_ERROR, id, "Server AI request limit reached. Please try again later.");
-            return;
-        }
-
         NetworkUtils.EXECUTOR.execute(() -> {
             try {
                 doRequest(env, id, messages, model, options);
             } finally {
-                GLOBAL_CONCURRENT.decrementAndGet();
+                AiRateLimiter.INSTANCE.release();
+            }
+        });
+    }
+
+    /**
+     * Dispatch an AI request asynchronously using callbacks.
+     */
+    public static void dispatchWithCallbacks(
+        List<AiAPI.AiMessage> messages,
+        AiConfig.ModelEntry model,
+        AiAPI.RequestOptions options,
+        java.util.function.Consumer<String> onSuccess,
+        java.util.function.Consumer<Throwable> onError
+    ) {
+        NetworkUtils.EXECUTOR.execute(() -> {
+            try {
+                var validation = AiConfig.validation;
+                var maxRetries = validation.enabled ? validation.maxRetries : 1;
+                String lastResponse = null;
+                boolean validated = false;
+
+                for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        lastResponse = sendRawRequest(
+                            AiConfig.endpoint + (AiConfig.endpoint.endsWith("/") ? "" : "/") + "chat/completions",
+                            AiConfig.getServerApiKey(),
+                            buildJsonBody(messages, model, options), 60
+                        );
+                    } catch (Exception e) {
+                        onError.accept(e);
+                        return;
+                    }
+
+                    if (lastResponse == null) {
+                        onError.accept(new java.io.IOException("AI returned an empty response."));
+                        return;
+                    }
+
+                    if (!validation.enabled || runValidation(validation, lastResponse)) {
+                        validated = true;
+                        break;
+                    }
+                }
+                
+                onSuccess.accept(lastResponse);
+            } catch (Exception e) {
+                onError.accept(e);
+            } finally {
                 AiRateLimiter.INSTANCE.release();
             }
         });

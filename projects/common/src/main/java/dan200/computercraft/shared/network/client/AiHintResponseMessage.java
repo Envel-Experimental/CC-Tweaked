@@ -4,11 +4,9 @@
 
 package dan200.computercraft.shared.network.client;
 
-import dan200.computercraft.client.gui.AbstractComputerScreen;
 import dan200.computercraft.shared.network.MessageType;
 import dan200.computercraft.shared.network.NetworkMessage;
 import dan200.computercraft.shared.network.NetworkMessages;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 
 /**
@@ -32,10 +30,7 @@ public class AiHintResponseMessage implements NetworkMessage<ClientNetworkContex
 
     @Override
     public void handle(ClientNetworkContext context) {
-        var mc = Minecraft.getInstance();
-        if (mc.screen instanceof AbstractComputerScreen<?> screen) {
-            screen.onAiHintResponse(hintText);
-        }
+        context.handleAiHintResponse(hintText);
     }
 
     @Override

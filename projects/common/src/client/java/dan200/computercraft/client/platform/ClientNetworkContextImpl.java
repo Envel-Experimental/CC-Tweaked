@@ -116,4 +116,13 @@ public final class ClientNetworkContextImpl implements ClientNetworkContext {
             level != null && pos.entity().isPresent() ? level.getEntity(pos.entity().getAsInt()) : null
         );
     }
+
+    @Override
+    public void handleAiHintResponse(String hintText) {
+        var minecraft = Minecraft.getInstance();
+        var screen = OptionScreen.unwrap(minecraft.screen);
+        if (screen instanceof AbstractComputerScreen<?> computerScreen) {
+            computerScreen.onAiHintResponse(hintText);
+        }
+    }
 }

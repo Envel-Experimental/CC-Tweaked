@@ -43,4 +43,6 @@ public interface ClientNetworkContext {
     void handleSpeakerStop(UUID source);
 
     void handleUploadResult(int containerId, UploadResult result, @Nullable Component errorMessage);
+
+    void handleAiHintResponse(String hintText);
 }

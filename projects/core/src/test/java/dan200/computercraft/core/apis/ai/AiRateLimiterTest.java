@@ -115,7 +115,7 @@ class AiRateLimiterTest {
 
         // Simulate 26 hours of inactivity
         var cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(26);
-        for (var state : map.values()) {
+        for (Object state : map.values()) {
             var lastAccessField = state.getClass().getDeclaredField("lastAccess");
             lastAccessField.setAccessible(true);
             lastAccessField.set(state, cutoff);

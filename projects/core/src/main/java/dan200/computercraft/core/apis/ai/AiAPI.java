@@ -196,8 +196,7 @@ public class AiAPI implements ILuaAPI {
      * if ok then print(text) else print("Error or timeout:", text) end
      * }</pre>
      *
-     * @param requestId The request ID returned by {@link #ask} or {@link #chat}.
-     * @param timeout   Max seconds to wait (default 30).
+     * @param args The arguments.
      * @return {@code true, response_text} on success; {@code false, error_reason} on failure/timeout.
      * @throws LuaException Never — timeouts return {@code false} instead.
      * @cc.tparam number request_id Request ID to wait for.
@@ -346,6 +345,7 @@ public class AiAPI implements ILuaAPI {
         return s.length() > maxLen ? s.substring(0, maxLen) : s;
     }
 
+    @javax.annotation.Nullable
     private static String getString(Map<?, ?> m, String key) {
         var v = m.get(key);
         return v instanceof String s ? s : null;
