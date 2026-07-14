@@ -38,14 +38,13 @@ public final class FixedWidthFontRenderer {
     public static final int FONT_HEIGHT = 9;
     public static final int FONT_WIDTH = 6;
     /**
-     * Width of the extended font atlas (512px = 32 columns of glyphs).
-     * Original was 256px (16 columns). The right half holds Cyrillic U+0100–U+01FF
-     * as produced by {@code CyrillicFontPatcher}.
+     * Width of the extended font atlas (256px).
+     * Original was 256px (16 columns). The right half holds Cyrillic U+0400-U+04FF.
      */
-    static final float WIDTH = 512.0f;
+    static final float WIDTH = 256.0f;
     static final float ATLAS_HEIGHT = 256.0f;
-    /** Number of glyph columns per row in the extended atlas. */
-    static final int COLS = 32;
+    /** Number of glyph columns per row in the original layout. */
+    static final int COLS = 16;
 
     static final float BACKGROUND_START = (ATLAS_HEIGHT - 6.0f) / ATLAS_HEIGHT;
     static final float BACKGROUND_END = (ATLAS_HEIGHT - 4.0f) / ATLAS_HEIGHT;
@@ -72,9 +71,9 @@ public final class FixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
-        // Extended 32-column atlas: column and row use COLS=32 instead of 16.
-        var column = index % COLS;
-        var row = index / COLS;
+        // Latin is 0..255 (cols 0..15). Cyrillic is 256..511 (cols 16..31).
+        var column = (index < 256) ? (index % 16) : (16 + (index % 16));
+        var row = (index < 256) ? (index / 16) : ((index - 256) / 16);
 
         var xStart = 1 + column * (FONT_WIDTH + 2);
         var yStart = 1 + row * (FONT_HEIGHT + 2);

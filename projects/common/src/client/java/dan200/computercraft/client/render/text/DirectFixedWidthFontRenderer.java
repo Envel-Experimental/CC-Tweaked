@@ -49,9 +49,9 @@ public final class DirectFixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
-        // Extended 32-column atlas (COLS = 32, WIDTH = 512, ATLAS_HEIGHT = 256).
-        var column = index % COLS;
-        var row = index / COLS;
+        // Latin is 0..255 (cols 0..15). Cyrillic is 256..511 (cols 16..31).
+        var column = (index < 256) ? (index % 16) : (16 + (index % 16));
+        var row = (index < 256) ? (index / 16) : ((index - 256) / 16);
 
         var xStart = 1 + column * (FONT_WIDTH + 2);
         var yStart = 1 + row * (FONT_HEIGHT + 2);

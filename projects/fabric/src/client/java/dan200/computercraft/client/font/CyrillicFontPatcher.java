@@ -11,6 +11,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Extends the CC terminal font atlas from 256×256 (16 cols × 16 rows, Latin-1 only)
@@ -36,8 +37,8 @@ public final class CyrillicFontPatcher {
     private static final int ORIG_WIDTH = 256;
     private static final int ATLAS_HEIGHT = 256;
 
-    /** Extended atlas is 512×256 — right half (columns 16–31) holds codepoints 0x100–0x1FF. */
-    public static final int EXTENDED_WIDTH = 512;
+    /** Extended atlas is 256x256 (same as original, but right half is used for Cyrillic). */
+    public static final int EXTENDED_WIDTH = 256;
 
     /** Each glyph cell occupies 8×11px (6px glyph + 2px horizontal padding, 9px + 2px vertical). */
     private static final int CELL_W = FixedWidthFontRenderer.FONT_WIDTH + 2;   // 8
@@ -74,7 +75,6 @@ public final class CyrillicFontPatcher {
         patched = true;
 
         var mc = Minecraft.getInstance();
-        var resourceManager = mc.getResourceManager();
 
         // Load the original 256×256 atlas from the mod's resources.
         NativeImage extended;
@@ -98,6 +98,7 @@ public final class CyrillicFontPatcher {
 
     // --- Private helpers ---
 
+    @Nullable
     private static NativeImage loadOriginalAtlas(Minecraft mc) {
         try {
             var resource = mc.getResourceManager().getResource(FixedWidthFontRenderer.FONT);
@@ -122,16 +123,17 @@ public final class CyrillicFontPatcher {
     private static NativeImage buildExtendedAtlas(NativeImage original, Font mcFont) {
         var atlas = new NativeImage(NativeImage.Format.RGBA, EXTENDED_WIDTH, ATLAS_HEIGHT, false);
 
-        // Copy original left half (pixels 0–255 wide).
+        // Copy original image exactly as is (contains Latin in left half, backgrounds at bottom)
         for (var y = 0; y < ATLAS_HEIGHT; y++) {
             for (var x = 0; x < ORIG_WIDTH; x++) {
                 atlas.setPixelRGBA(x, y, original.getPixelRGBA(x, y));
             }
         }
 
-        // Rasterise Cyrillic glyphs into the right half.
+        // Rasterise Cyrillic glyphs into the right half (columns 16-31).
+        // 256 Cyrillic characters will map to slots 256-511.
         for (var cp = CYRILLIC_START; cp <= CYRILLIC_END; cp++) {
-            var slotIndex = cp - CYRILLIC_START + 256; // slots 256–511 in our extended layout
+            var slotIndex = cp - CYRILLIC_START + 256; 
             renderGlyph(atlas, mcFont, cp, slotIndex);
         }
 
@@ -148,9 +150,11 @@ public final class CyrillicFontPatcher {
      * </ul>
      * The glyph is drawn at pixel (1 + col*CELL_W, 1 + row*CELL_H) with 1px of inset padding.
      */
+    @SuppressWarnings("unused")
     private static void renderGlyph(NativeImage atlas, Font mcFont, int codepoint, int slotIndex) {
-        var col = slotIndex % COLS;
-        var row = slotIndex / COLS;
+        // Latin is 0..255 (cols 0..15). Cyrillic is 256..511 (cols 16..31).
+        var col = (slotIndex < 256) ? (slotIndex % 16) : (16 + (slotIndex % 16));
+        var row = (slotIndex < 256) ? (slotIndex / 16) : ((slotIndex - 256) / 16);
 
         var destX = 1 + col * CELL_W;
         var destY = 1 + row * CELL_H;
@@ -161,7 +165,6 @@ public final class CyrillicFontPatcher {
         }
 
         // Ask Minecraft's font for the baked glyph. Using the default font set.
-        var character = Character.toString((char) codepoint);
         // Measure where MC would draw this character, then sample from its own glyph texture.
         // We use a lightweight approach: render to a temporary NativeImage via MC's GlyphInfo.
         try {
@@ -177,9 +180,6 @@ public final class CyrillicFontPatcher {
             float scaleY = (float) FixedWidthFontRenderer.FONT_HEIGHT / (baked.down - baked.up);
             */
             if (true) return;
-            float scaleX = 1f;
-            float scaleY = 1f;
-            var baked = (net.minecraft.client.gui.font.glyphs.BakedGlyph) null;
 
             // Sample from the MC glyph texture atlas and write into our atlas.
             // This requires CPU-side access to MC's glyph texture, which is not publicly exposed.
@@ -208,8 +208,8 @@ public final class CyrillicFontPatcher {
      * @return float[4] = {u1, v1, u2, v2} in [0,1] texture space.
      */
     public static float[] uvForCodepoint(int codepoint) {
-        var col = codepoint % COLS;
-        var row = codepoint / COLS;
+        var col = (codepoint < 256) ? (codepoint % 16) : (16 + (codepoint % 16));
+        var row = (codepoint < 256) ? (codepoint / 16) : ((codepoint - 256) / 16);
 
         var xStart = 1 + col * CELL_W;
         var yStart = 1 + row * CELL_H;

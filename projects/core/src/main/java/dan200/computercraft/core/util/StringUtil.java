@@ -27,10 +27,9 @@ public final class StringUtil {
             return chr;
         }
 
-        // Full Cyrillic block U+0400–U+04FF: pass through directly.
-        // These map to slots 256–511 in the extended 512×256 font atlas.
+        // Full Cyrillic block U+0400–U+04FF: map to 256–511 in the font atlas.
         if (chr >= 0x0400 && chr <= 0x04FF) {
-            return chr;
+            return chr - 0x0400 + 256;
         }
 
         // Teletext block mosaics are *fairly* contiguous.
@@ -99,8 +98,8 @@ public final class StringUtil {
         if (chr >= 32 && chr <= 126) return true;
         // Latin-1 extended
         if (chr >= 160 && chr <= 255) return true;
-        // Cyrillic block — supported via extended font atlas
-        if (chr >= 0x0400 && chr <= 0x04FF) return true;
+        // Cyrillic block — supported via extended font atlas (mapped to 256-511)
+        if (chr >= 256 && chr <= 511) return true;
         return false;
     }
 
