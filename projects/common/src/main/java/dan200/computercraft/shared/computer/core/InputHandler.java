@@ -20,7 +20,13 @@ public interface InputHandler {
 
     void keyUp(int key);
 
-    void charTyped(byte chr);
+    /**
+     * Called when the user types a character. Accepts any codepoint valid for the terminal,
+     * including Cyrillic (U+0400–U+04FF) in addition to ASCII/Latin-1.
+     *
+     * @param chr Unicode codepoint of the typed character.
+     */
+    void charTyped(int chr);
 
     void paste(ByteBuffer contents);
 

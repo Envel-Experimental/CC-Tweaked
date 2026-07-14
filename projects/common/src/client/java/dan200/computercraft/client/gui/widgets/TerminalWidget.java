@@ -73,7 +73,7 @@ public class TerminalWidget extends AbstractWidget {
     @Override
     public boolean charTyped(char ch, int modifiers) {
         var terminalChar = StringUtil.unicodeToTerminal(ch);
-        if (StringUtil.isTypableChar(terminalChar)) computer.charTyped((byte) terminalChar);
+        if (StringUtil.isTypableChar(terminalChar)) computer.charTyped(terminalChar);
         return true;
     }
 

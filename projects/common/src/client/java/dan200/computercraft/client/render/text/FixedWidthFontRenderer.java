@@ -37,10 +37,18 @@ public final class FixedWidthFontRenderer {
 
     public static final int FONT_HEIGHT = 9;
     public static final int FONT_WIDTH = 6;
-    static final float WIDTH = 256.0f;
+    /**
+     * Width of the extended font atlas (512px = 32 columns of glyphs).
+     * Original was 256px (16 columns). The right half holds Cyrillic U+0100–U+01FF
+     * as produced by {@code CyrillicFontPatcher}.
+     */
+    static final float WIDTH = 512.0f;
+    static final float ATLAS_HEIGHT = 256.0f;
+    /** Number of glyph columns per row in the extended atlas. */
+    static final int COLS = 32;
 
-    static final float BACKGROUND_START = (WIDTH - 6.0f) / WIDTH;
-    static final float BACKGROUND_END = (WIDTH - 4.0f) / WIDTH;
+    static final float BACKGROUND_START = (ATLAS_HEIGHT - 6.0f) / ATLAS_HEIGHT;
+    static final float BACKGROUND_END = (ATLAS_HEIGHT - 4.0f) / ATLAS_HEIGHT;
 
     private static final int BLACK = FastColor.ARGB32.color(255, byteColour(Colour.BLACK.getR()), byteColour(Colour.BLACK.getR()), byteColour(Colour.BLACK.getR()));
     private static final float Z_OFFSET = 1e-4f;
@@ -64,15 +72,16 @@ public final class FixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
-        var column = index % 16;
-        var row = index / 16;
+        // Extended 32-column atlas: column and row use COLS=32 instead of 16.
+        var column = index % COLS;
+        var row = index / COLS;
 
         var xStart = 1 + column * (FONT_WIDTH + 2);
         var yStart = 1 + row * (FONT_HEIGHT + 2);
 
         quad(
             emitter, x, y, x + FONT_WIDTH, y + FONT_HEIGHT, 0, colour,
-            xStart / WIDTH, yStart / WIDTH, (xStart + FONT_WIDTH) / WIDTH, (yStart + FONT_HEIGHT) / WIDTH, light
+            xStart / WIDTH, yStart / ATLAS_HEIGHT, (xStart + FONT_WIDTH) / WIDTH, (yStart + FONT_HEIGHT) / ATLAS_HEIGHT, light
         );
     }
 
@@ -122,7 +131,9 @@ public final class FixedWidthFontRenderer {
             var colour = palette.getRenderColours(getColour(textColour.charAt(i), Colour.BLACK));
 
             int index = text.charAt(i);
-            if (index > 255) index = '?';
+            // Codepoints 0–511 are valid in the extended atlas (Latin-1 + Cyrillic).
+            // Anything beyond falls back to '?' to avoid UV out-of-bounds.
+            if (index > 511) index = '?';
             drawChar(emitter, x + i * FONT_WIDTH, y, index, colour, light);
         }
 

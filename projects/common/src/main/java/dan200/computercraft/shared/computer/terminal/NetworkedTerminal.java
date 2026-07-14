@@ -10,6 +10,14 @@ import dan200.computercraft.core.util.Colour;
 import net.minecraft.nbt.CompoundTag;
 
 public class NetworkedTerminal extends Terminal {
+    /**
+     * Version byte written at the start of the binary terminal snapshot.
+     * 0x01 = legacy single-byte (Latin-1 only, codepoints 0-255).
+     * 0x02 = UTF-16 BE text (codepoints 0-65535, enables Cyrillic).
+     */
+    private static final byte VERSION_LEGACY = 0x01;
+    private static final byte VERSION_UTF16  = 0x02;
+
     public NetworkedTerminal(int width, int height, boolean colour) {
         super(width, height, colour);
     }
@@ -19,15 +27,25 @@ public class NetworkedTerminal extends Terminal {
     }
 
     synchronized TerminalState write() {
-        var contents = new byte[width * height * 2 + Palette.PALETTE_SIZE * 3];
+        // Layout: [1 version][width*height*2 text as UTF-16 BE][width*height colour bytes][palette bytes]
+        var textBytes = width * height * 2;
+        var contents = new byte[1 + textBytes + width * height + Palette.PALETTE_SIZE * 3];
         var idx = 0;
+
+        contents[idx++] = VERSION_UTF16;
 
         for (var y = 0; y < height; y++) {
             var text = this.text[y];
+            for (var x = 0; x < width; x++) {
+                var ch = text.charAt(x);
+                contents[idx++] = (byte) ((ch >> 8) & 0xFF); // high byte
+                contents[idx++] = (byte) (ch & 0xFF);        // low byte
+            }
+        }
+
+        for (var y = 0; y < height; y++) {
             var textColour = this.textColour[y];
             var backColour = backgroundColour[y];
-
-            for (var x = 0; x < width; x++) contents[idx++] = (byte) (text.charAt(x) & 0xFF);
             for (var x = 0; x < width; x++) {
                 contents[idx++] = (byte) (getColour(backColour.charAt(x), Colour.BLACK) << 4 | getColour(textColour.charAt(x), Colour.WHITE));
             }
@@ -46,18 +64,46 @@ public class NetworkedTerminal extends Terminal {
         cursorX = state.cursorX;
         cursorY = state.cursorY;
         cursorBlink = state.cursorBlink;
-
         cursorBackgroundColour = state.cursorBgColour;
         this.cursorColour = state.cursorFgColour;
 
         var contents = state.contents;
         var idx = 0;
+
+        if (contents.length == 0) {
+            setChanged();
+            return;
+        }
+
+        var version = contents[idx++];
+
+        if (version == VERSION_UTF16) {
+            // New format: each text cell is 2 bytes (UTF-16 BE).
+            for (var y = 0; y < height; y++) {
+                var text = this.text[y];
+                for (var x = 0; x < width; x++) {
+                    var high = contents[idx++] & 0xFF;
+                    var low  = contents[idx++] & 0xFF;
+                    text.setChar(x, (char) ((high << 8) | low));
+                }
+            }
+        } else {
+            // Legacy format (VERSION_LEGACY = 0x01 or pre-versioned data): single byte per cell.
+            // Treat the version byte as first data byte and continue reading.
+            // First cell of row 0:
+            if (height > 0 && width > 0) this.text[0].setChar(0, (char) (version & 0xFF));
+            var startedAt = 1; // already consumed first byte
+            for (var y = 0; y < height; y++) {
+                var text = this.text[y];
+                for (var x = (y == 0 ? 1 : 0); x < width; x++) {
+                    text.setChar(x, (char) (contents[idx++] & 0xFF));
+                }
+            }
+        }
+
         for (var y = 0; y < height; y++) {
-            var text = this.text[y];
             var textColour = this.textColour[y];
             var backColour = backgroundColour[y];
-
-            for (var x = 0; x < width; x++) text.setChar(x, (char) (contents[idx++] & 0xFF));
             for (var x = 0; x < width; x++) {
                 var colour = contents[idx++];
                 backColour.setChar(x, BASE_16.charAt((colour >> 4) & 0xF));
@@ -72,7 +118,6 @@ public class NetworkedTerminal extends Terminal {
             palette.setColour(i, r, g, b);
         }
 
-        assert idx == contents.length;
         setChanged();
     }
 

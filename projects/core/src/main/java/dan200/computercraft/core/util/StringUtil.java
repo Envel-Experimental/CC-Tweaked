@@ -18,8 +18,8 @@ public final class StringUtil {
      * Convert a Unicode character to a terminal one.
      *
      * @param chr The Unicode character.
-     * @return The terminal character. This is either in the range [0, 255] (if a valid character) or {@code -1} if
-     * it cannot be mapped to CC's charset.
+     * @return The terminal character in the range [0, 0xFFFF] if valid for the terminal,
+     *         or {@code -1} if it cannot be displayed.
      */
     public static int unicodeToTerminal(int chr) {
         // ASCII and latin1 map to themselves
@@ -27,12 +27,17 @@ public final class StringUtil {
             return chr;
         }
 
+        // Full Cyrillic block U+0400–U+04FF: pass through directly.
+        // These map to slots 256–511 in the extended 512×256 font atlas.
+        if (chr >= 0x0400 && chr <= 0x04FF) {
+            return chr;
+        }
+
         // Teletext block mosaics are *fairly* contiguous.
         if (chr >= 0x1FB00 && chr <= 0x1FB13) return chr + (129 - 0x1fb00);
         if (chr >= 0x1FB14 && chr <= 0x1FB1D) return chr + (150 - 0x1fb14);
 
-        // Everything else is just a manual lookup. For now, we just use a big switch statement, which we spin into a
-        // separate function to hopefully avoid inlining it here.
+        // Everything else is just a manual lookup.
         return unicodeToCraftOsFallback(chr);
     }
 
@@ -71,10 +76,10 @@ public final class StringUtil {
     }
 
     /**
-     * Check if a character is capable of being input and passed to a {@linkplain ComputerEvents#charTyped(ComputerEvents.Receiver, byte)
-     * "char" event}.
+     * Check if a character is capable of being input and passed to a {@linkplain ComputerEvents#charTyped
+     * "char" event}. Accepts ASCII printable, Latin-1, and Cyrillic (U+0400–U+04FF).
      *
-     * @param chr The character to check.
+     * @param chr The character to check (as raw byte, legacy overload).
      * @return Whether this character can be typed.
      */
     public static boolean isTypableChar(byte chr) {
@@ -82,19 +87,27 @@ public final class StringUtil {
     }
 
     /**
-     * Check if a character is capable of being input and passed to a {@linkplain ComputerEvents#charTyped(ComputerEvents.Receiver, byte)
-     * "char" event}.
+     * Check if a character is capable of being input and passed to a {@linkplain ComputerEvents#charTyped
+     * "char" event}. Accepts ASCII printable, Latin-1, and Cyrillic (U+0400–U+04FF).
      *
-     * @param chr The character to check.
+     * @param chr The character to check (Unicode codepoint).
      * @return Whether this character can be typed.
      */
     public static boolean isTypableChar(int chr) {
-        return chr >= 0 && chr <= 255 && chr != 0 && chr != '\r' && chr != '\n';
+        if (chr <= 0 || chr == '\r' || chr == '\n') return false;
+        // ASCII printable
+        if (chr <= 255) return true;
+        // Cyrillic block — supported via extended font atlas
+        if (chr >= 0x0400 && chr <= 0x04FF) return true;
+        return false;
     }
 
     private static boolean isAllowedInLabel(char c) {
-        // Limit to ASCII and latin1, excluding '§' (Minecraft's formatting character).
-        return (c >= ' ' && c <= '~') || (c >= 161 && c <= 255 && c != 167);
+        // ASCII and Latin-1, excluding '§' (Minecraft's formatting character).
+        if ((c >= ' ' && c <= '~') || (c >= 161 && c <= 255 && c != 167)) return true;
+        // Cyrillic: allow in computer labels.
+        if (c >= 0x0400 && c <= 0x04FF) return true;
+        return false;
     }
 
     public static String normaliseLabel(String text) {
@@ -110,21 +123,25 @@ public final class StringUtil {
     /**
      * Convert a Java string to a Lua one (using the terminal charset), suitable for pasting into a computer.
      * <p>
-     * This removes special characters and strips to the first line of text.
+     * Strips newlines (stops at first) and filters to typable characters. Returns raw Unicode codepoints
+     * packed as little-endian 16-bit chars (two bytes per char) to support Cyrillic paste.
      *
      * @param clipboard The text from the clipboard.
-     * @return The encoded clipboard text.
+     * @return The encoded clipboard text as a ByteBuffer of UTF-16 LE pairs.
      */
     public static ByteBuffer getClipboardString(String clipboard) {
-        var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length())];
+        // Each char may need up to 2 bytes (UTF-16 LE).
+        var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length()) * 2];
         var idx = 0;
 
         var iterator = clipboard.codePoints().iterator();
-        while (iterator.hasNext() && idx < output.length) {
+        while (iterator.hasNext() && idx < output.length - 1) {
             var chr = unicodeToTerminal(iterator.next());
-            if (chr < 0) continue; // Strip out unconvertible characters
-            if (!isTypableChar(chr)) break; // Stop at untypable ones.
-            output[idx++] = (byte) chr;
+            if (chr < 0) continue;
+            if (!isTypableChar(chr)) break;
+            // Store as little-endian UTF-16.
+            output[idx++] = (byte) (chr & 0xFF);
+            output[idx++] = (byte) ((chr >> 8) & 0xFF);
         }
 
         return ByteBuffer.wrap(output, 0, idx).asReadOnlyBuffer();

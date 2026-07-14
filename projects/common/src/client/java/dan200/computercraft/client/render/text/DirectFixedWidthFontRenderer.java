@@ -49,15 +49,16 @@ public final class DirectFixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
-        var column = index % 16;
-        var row = index / 16;
+        // Extended 32-column atlas (COLS = 32, WIDTH = 512, ATLAS_HEIGHT = 256).
+        var column = index % COLS;
+        var row = index / COLS;
 
         var xStart = 1 + column * (FONT_WIDTH + 2);
         var yStart = 1 + row * (FONT_HEIGHT + 2);
 
         quad(
             emitter, x, y, x + FONT_WIDTH, y + FONT_HEIGHT, 0, colour,
-            xStart / WIDTH, yStart / WIDTH, (xStart + FONT_WIDTH) / WIDTH, (yStart + FONT_HEIGHT) / WIDTH
+            xStart / WIDTH, yStart / ATLAS_HEIGHT, (xStart + FONT_WIDTH) / WIDTH, (yStart + FONT_HEIGHT) / ATLAS_HEIGHT
         );
     }
 
@@ -103,7 +104,8 @@ public final class DirectFixedWidthFontRenderer {
             var colour = palette.getRenderColours(getColour(textColour.charAt(i), Colour.BLACK));
 
             int index = text.charAt(i);
-            if (index > 255) index = '?';
+            // Codepoints 0–511 valid in extended atlas (Latin-1 + Cyrillic). Beyond = '?'.
+            if (index > 511) index = '?';
             drawChar(emitter, x + i * FONT_WIDTH, y, index, colour);
         }
 
