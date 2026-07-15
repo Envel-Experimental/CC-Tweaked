@@ -6,7 +6,7 @@ package dan200.computercraft.core.computer;
 
 import dan200.computercraft.core.util.StringUtil;
 
-import javax.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.nio.ByteBuffer;
 
 /**
@@ -31,8 +31,9 @@ public final class ComputerEvents {
      * @param chr      The character to type.
      * @see StringUtil#isTypableChar(byte)
      */
-    public static void charTyped(Receiver receiver, byte chr) {
-        receiver.queueEvent("char", new Object[]{ new byte[]{ chr } });
+    public static void charTyped(Receiver receiver, char chr) {
+        byte terminalChar = StringUtil.unicodeToTerminal(chr);
+        receiver.queueEvent("char", new Object[]{ new byte[]{ terminalChar } });
     }
 
     /**

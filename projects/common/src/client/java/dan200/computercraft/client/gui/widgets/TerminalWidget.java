@@ -250,6 +250,7 @@ public class TerminalWidget extends AbstractWidget {
     }
 
     public @org.jspecify.annotations.Nullable String getCurrentError() {
+        // dummy comment to force recompile
         return currentError;
     }
 

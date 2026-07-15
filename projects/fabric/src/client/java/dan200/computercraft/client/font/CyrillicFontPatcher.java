@@ -177,7 +177,7 @@ public final class CyrillicFontPatcher {
             if (awtFont == null) {
                 // Use a commonly available sans-serif font with Cyrillic coverage.
                 // We request a bold-ish weight to match CC's crispy pixel font look.
-                awtFont = new java.awt.Font("SansSerif", java.awt.Font.BOLD, 9);
+                awtFont = new java.awt.Font("SansSerif", java.awt.Font.BOLD, 8);
                 // Verify it can actually render Cyrillic
                 if (!awtFont.canDisplay(cp)) {
                     // Fallback: try to find a font that can
@@ -203,8 +203,8 @@ public final class CyrillicFontPatcher {
                 // Centre the glyph in the cell vertically using font metrics.
                 var str = new String(Character.toChars(cp));
                 var metrics = g2d.getFontMetrics();
-                // Baseline = cell height - descent, roughly centres the glyph
-                var baseline = CELL_H - metrics.getDescent();
+                // Baseline = cell height - descent - 1 (lift it up to prevent chopping legs off letters like Д and Р)
+                var baseline = CELL_H - metrics.getDescent() - 1;
                 g2d.drawString(str, 1, baseline);
             } finally {
                 g2d.dispose();

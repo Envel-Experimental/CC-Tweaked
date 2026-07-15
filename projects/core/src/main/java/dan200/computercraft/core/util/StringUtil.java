@@ -26,6 +26,15 @@ public final class StringUtil {
             return (byte) chr;
         }
 
+        // Map Cyrillic to CP1251 (192-255 for main alphabet, 168/184 for Ё/ё)
+        if (chr >= 0x0410 && chr <= 0x044F) {
+            return (byte) (chr - 0x0410 + 192);
+        } else if (chr == 0x0401) {
+            return (byte) 168; // Ё
+        } else if (chr == 0x0451) {
+            return (byte) 184; // ё
+        }
+
         // Teletext block mosaics are *fairly* contiguous.
         if (chr >= 0x1FB00 && chr <= 0x1FB13) return (byte) (chr + (129 - 0x1fb00));
         if (chr >= 0x1FB14 && chr <= 0x1FB1D) return (byte) (chr + (150 - 0x1fb14));
@@ -76,8 +85,12 @@ public final class StringUtil {
      * @param chr The character to check.
      * @return Whether this character can be typed.
      */
-    public static boolean isTypableChar(byte chr) {
-        return chr != 0 && chr != '\r' && chr != '\n';
+    public static boolean isTypableChar(int c) {
+        // Technically this does not cover all ANSI characters, but we've always used a 127 limit here.
+        if (c >= 32 && c <= 126) return true;
+        if (c >= 160 && c <= 255) return true;
+        if (c >= 0x0400 && c <= 0x04FF) return true;
+        return false;
     }
 
     private static boolean isAllowedInLabel(char c) {

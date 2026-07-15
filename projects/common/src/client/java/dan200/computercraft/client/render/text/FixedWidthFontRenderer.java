@@ -71,6 +71,15 @@ public final class FixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
+        // Map CP1251 bytes back to Cyrillic Unicode
+        if (index >= 192 && index <= 255) {
+            index = index - 192 + 0x0410;
+        } else if (index == 168) {
+            index = 0x0401;
+        } else if (index == 184) {
+            index = 0x0451;
+        }
+
         // Map Cyrillic characters (U+0400 to U+04FF) to 256..511
         if (index >= 0x0400 && index <= 0x04FF) {
             index = index - 0x0400 + 256;
