@@ -37,26 +37,10 @@ public abstract class TermMethods {
      */
     @LuaFunction
     public final void write(Coerced<String> textA) throws LuaException {
+        // Cobalt already decodes Lua UTF-8 bytes into a proper Java String (UTF-16).
+        // TextBuffer stores char[] — Unicode-compatible for BMP (Cyrillic included).
+        // No byte-level mangling needed.
         var text = textA.value();
-        
-        // Convert to bytes and attempt UTF-8 decode
-        var bytes = new byte[text.length()];
-        for (var i = 0; i < text.length(); i++) {
-            bytes[i] = (byte) text.charAt(i);
-        }
-        try {
-            var decoder = java.nio.charset.StandardCharsets.UTF_8.newDecoder();
-            decoder.onMalformedInput(java.nio.charset.CodingErrorAction.REPORT);
-            decoder.onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
-            var decoded = decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString();
-            text = decoded; // Valid UTF-8, use decoded string
-        } catch (java.nio.charset.CharacterCodingException e) {
-            System.out.println("DECODE ERROR! Input length: " + bytes.length);
-            for (byte b : bytes) System.out.printf("%02X ", b);
-            System.out.println();
-            e.printStackTrace();
-            // Not valid UTF-8, use original text (ISO-8859-1)
-        }
 
         var terminal = getTerminal();
         synchronized (terminal) {
@@ -272,14 +256,124 @@ public abstract class TermMethods {
      */
     @LuaFunction
     public final void blit(ByteBuffer text, ByteBuffer textColour, ByteBuffer backgroundColour) throws LuaException {
-        if (textColour.remaining() != text.remaining() || backgroundColour.remaining() != text.remaining()) {
-            throw new LuaException("Arguments must be the same length");
+        var terminal = getTerminal();
+
+        var len = text.remaining();
+        var colourLen = textColour.remaining();
+        var bgLen = backgroundColour.remaining();
+
+        // Read all bytes into a local array for scanning and decoding.
+        var textArray = new byte[len];
+        var pos = text.position();
+        boolean hasHigh = false;
+        for (var i = 0; i < len; i++) {
+            var b = text.get(pos + i);
+            textArray[i] = b;
+            if (b < 0) hasHigh = true;
         }
 
-        var terminal = getTerminal();
+        if (!hasHigh) {
+            // Pure ASCII — use original fast path.
+            if (colourLen != len || bgLen != len) {
+                throw new LuaException("Arguments must be the same length");
+            }
+            synchronized (terminal) {
+                terminal.blit(text, textColour, backgroundColour);
+                terminal.setCursorPos(terminal.getCursorX() + len, terminal.getCursorY());
+            }
+            return;
+        }
+
+        // UTF-8 path: decode bytes into codepoints, re-pack colours (one per codepoint).
+        var decoded = new StringBuilder(len);
+        var packedTc = new byte[len];
+        var packedBg = new byte[len];
+        var outIdx = 0;
+
+        var colourBuf = new byte[colourLen];
+        var bgBuf = new byte[bgLen];
+        textColour.get(colourBuf, 0, colourLen);
+        backgroundColour.get(bgBuf, 0, bgLen);
+
+        for (var i = 0; i < len; ) {
+            var b0 = textArray[i] & 0xFF;
+            int charLen;
+            if ((b0 & 0x80) == 0) {
+                charLen = 1;
+            } else if ((b0 & 0xE0) == 0xC0) {
+                charLen = 2;
+            } else if ((b0 & 0xF0) == 0xE0) {
+                charLen = 3;
+            } else if ((b0 & 0xF8) == 0xF0) {
+                charLen = 4;
+            } else {
+                charLen = 1; // invalid lead — pass byte through as-is
+            }
+
+            if (i + charLen > len) charLen = len - i;
+
+            // Validate continuation bytes
+            boolean valid = charLen <= 1;
+            if (!valid) {
+                valid = true;
+                for (var j = 1; j < charLen; j++) {
+                    if ((textArray[i + j] & 0xC0) != 0x80) { valid = false; break; }
+                }
+            }
+
+            if (!valid) {
+                // Bad sequence — write raw byte as-is (lossy fallback for malformed input).
+                decoded.append((char) b0);
+                if (outIdx < colourLen) {
+                    packedTc[outIdx] = colourBuf[i];
+                    packedBg[outIdx] = bgBuf[i];
+                }
+                outIdx++;
+                i++;
+                continue;
+            }
+
+            // Decode codepoint
+            int codePoint;
+            if (charLen == 1) {
+                codePoint = b0;
+            } else if (charLen == 2) {
+                codePoint = ((b0 & 0x1F) << 6) | (textArray[i + 1] & 0x3F);
+            } else if (charLen == 3) {
+                codePoint = ((b0 & 0x0F) << 12) | ((textArray[i + 1] & 0x3F) << 6) | (textArray[i + 2] & 0x3F);
+            } else {
+                codePoint = ((b0 & 0x07) << 18) | ((textArray[i + 1] & 0x3F) << 12) | ((textArray[i + 2] & 0x3F) << 6) | (textArray[i + 3] & 0x3F);
+            }
+
+            if (codePoint <= 0xFFFF) {
+                decoded.append((char) codePoint);
+            } else {
+                // Supplementary plane → surrogate pair
+                decoded.append(Character.highSurrogate(codePoint));
+                decoded.append(Character.lowSurrogate(codePoint));
+                // Duplicate colour for the trailing surrogate
+                if (outIdx + 1 < colourLen) {
+                    packedTc[outIdx + 1] = colourBuf[i];
+                    packedBg[outIdx + 1] = bgBuf[i];
+                }
+                outIdx++; // will be incremented again below for the second surrogate
+            }
+
+            // Take colour from the FIRST byte of the multi-byte sequence
+            if (outIdx < colourLen) {
+                packedTc[outIdx] = colourBuf[i];
+                packedBg[outIdx] = bgBuf[i];
+            }
+            outIdx++;
+            i += charLen;
+        }
+
+        var written = Math.min(outIdx, decoded.length());
+        var decodedStr = decoded.substring(0, written);
+
         synchronized (terminal) {
-            terminal.blit(text, textColour, backgroundColour);
-            terminal.setCursorPos(terminal.getCursorX() + text.remaining(), terminal.getCursorY());
+            terminal.blit(decodedStr, packedTc, packedBg);
+            terminal.setCursorPos(terminal.getCursorX() + written, terminal.getCursorY());
         }
     }
 

@@ -13,6 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jspecify.annotations.Nullable;
 
+import java.awt.Color;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.Rectangle2D;
+
 /**
  * Extends the CC terminal font atlas from 256×256 (16 cols × 16 rows, Latin-1 only)
  * to 512×256 (32 cols × 16 rows) by extracting Cyrillic glyphs from Minecraft's own
@@ -37,7 +45,8 @@ public final class CyrillicFontPatcher {
     private static final int ORIG_WIDTH = 256;
     private static final int ATLAS_HEIGHT = 256;
 
-    /** Extended atlas is 256x256 (same as original, but right half is used for Cyrillic). */
+    /** Extend atlas to 512x256 so the right half (columns 16–31) can hold 256 Cyrillic glyphs.
+     *  Width stays 256 because 32 columns × 8px = 256px exactly fits. */
     public static final int EXTENDED_WIDTH = 256;
 
     /** Each glyph cell occupies 8×11px (6px glyph + 2px horizontal padding, 9px + 2px vertical). */
@@ -140,14 +149,17 @@ public final class CyrillicFontPatcher {
         return atlas;
     }
 
+    /** Lazily initialised AWT font used for rasterising Cyrillic glyphs. */
+    private static java.awt.@org.jspecify.annotations.Nullable Font awtFont = null;
+
     /**
-     * Render a single codepoint from Minecraft's font into the atlas at position {@code slotIndex}.
+     * Render a single codepoint into the atlas using Java AWT font rasterisation.
      *
-     * <p>In the 32-column layout (for indices 256-511):
-     * <ul>
-     *   <li>column = 16 + (slotIndex % 16)</li>
-     *   <li>row    = (slotIndex - 256) / 16</li>
-     * </ul>
+     * <p>This avoids any dependency on Minecraft's internal GL glyph pipeline — we just use
+     * the system's {@link java.awt.Font} (SansSerif) to render each character into an
+     * offscreen {@link BufferedImage} and then copy the pixels into the atlas NativeImage.
+     *
+     * <p>The AWT route works on any JVM without LWJGL context or Mixins.
      */
     private static void renderGlyph(NativeImage atlas, Font mcFont, int cp, int slotIndex) {
         var col = 16 + (slotIndex % 16);
@@ -161,40 +173,94 @@ public final class CyrillicFontPatcher {
             return; // Slot out of bounds — skip silently.
         }
 
-        // Ask Minecraft's font for the baked glyph. Using the default font set.
-        // Measure where MC would draw this character, then sample from its own glyph texture.
-        // We use a lightweight approach: render to a temporary NativeImage via MC's GlyphInfo.
         try {
-            // FIXME: Reflection needed for 1.20.1 MojMap font access.
-            /*
-            var glyphInfo = mcFont.getFontSet(new ResourceLocation("minecraft", "default")).getGlyphInfo((char) codepoint, false);
-            if (glyphInfo == null) return;
+            if (awtFont == null) {
+                // Use a commonly available sans-serif font with Cyrillic coverage.
+                // We request a bold-ish weight to match CC's crispy pixel font look.
+                awtFont = new java.awt.Font("SansSerif", java.awt.Font.BOLD, 9);
+                // Verify it can actually render Cyrillic
+                if (!awtFont.canDisplay(cp)) {
+                    // Fallback: try to find a font that can
+                    awtFont = findFontFor(cp, 9);
+                }
+            }
 
-            var baked = glyphInfo.bake(style -> mcFont.getFontSet(new ResourceLocation("minecraft", "default")).getGlyph((char) codepoint));
-            if (baked == null) return;
+            // Render the character into a temporary greyscale BufferedImage.
+            var img = new BufferedImage(CELL_W, CELL_H, BufferedImage.TYPE_BYTE_GRAY);
+            var g2d = img.createGraphics();
+            try {
+                g2d.setBackground(Color.BLACK);
+                g2d.clearRect(0, 0, CELL_W, CELL_H);
 
-            float scaleX = (float) FixedWidthFontRenderer.FONT_WIDTH / (baked.right - baked.left);
-            float scaleY = (float) FixedWidthFontRenderer.FONT_HEIGHT / (baked.down - baked.up);
-            */
-            if (true) return;
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(awtFont);
+                // No antialiasing — we want sharp pixel edges like the original CC font.
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+                    RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
 
-            // Sample from the MC glyph texture atlas and write into our atlas.
-            // This requires CPU-side access to MC's glyph texture, which is not publicly exposed.
-            // We use a fallback: draw a bright pixel at the top-left to mark the cell as non-empty,
-            // then during actual rendering the shader will use Minecraft's own font rendering
-            // if the glyph is missing (see FixedWidthFontRenderer — fallback to MC font).
-            //
-            // Full pixel-perfect extraction requires a GlyphRenderer Mixin or NativeImage readback
-            // from the GL texture (expensive, only done once). This is tracked as TODO in STEP.md A8.
-            //
-            // For now: mark the cell as having content by writing a sentinel white pixel.
-            // The renderer will do MC-font fallback for codepoints > 255 if the atlas pixel is empty.
-            atlas.setPixelRGBA(destX, destY, 0xFFFFFFFF); // sentinel: cell is not blank
+                // Centre the glyph in the cell vertically using font metrics.
+                var str = new String(Character.toChars(cp));
+                var metrics = g2d.getFontMetrics();
+                // Baseline = cell height - descent, roughly centres the glyph
+                var baseline = CELL_H - metrics.getDescent();
+                g2d.drawString(str, 1, baseline);
+            } finally {
+                g2d.dispose();
+            }
+
+            // Copy pixels into the NativeImage atlas.
+            // TYPE_BYTE_GRAY: each int pixel = 0xFF__AA__AA__AA (A=R=G=B=gray).
+            // We want white-on-black: white pixels keep their colour but with alpha=255.
+            // The original atlas uses RGBA format.
+            for (var dy = 0; dy < CELL_H; dy++) {
+                for (var dx = 0; dx < CELL_W; dx++) {
+                    if (destX + dx >= EXTENDED_WIDTH || destY + dy >= ATLAS_HEIGHT) continue;
+                    var argb = img.getRGB(dx, dy);
+                    var gray = argb & 0xFF; // In TYPE_BYTE_GRAY, R=G=B=gray, we take blue
+                    if (gray > 0) {
+                        // White pixel: write RGBA = (gray, gray, gray, 255)
+                        atlas.setPixelRGBA(destX + dx, destY + dy,
+                            0xFF000000 | (gray << 16) | (gray << 8) | gray);
+                    } else {
+                        // Black pixel: transparent (keeps whatever is underneath, but since
+                        // we start from a blank atlas this is effectively empty)
+                        atlas.setPixelRGBA(destX + dx, destY + dy, 0x00000000);
+                    }
+                }
+            }
+
+            LOG.trace("[CC:Cyrillic] Rendered U+{} at slot {}", Integer.toHexString(cp), slotIndex);
 
         } catch (Exception e) {
-            // Individual glyph failure is non-fatal — just leave cell empty (renders as blank, not ?).
-            LOG.trace("[CC:Cyrillic] Skipping glyph U+{} — {}", Integer.toHexString(cp), e.getMessage());
+            LOG.warn("[CC:Cyrillic] Failed to render U+{}: {}", Integer.toHexString(cp), e.getMessage());
         }
+    }
+
+    /**
+     * Search available AWT fonts for one that can display the given codepoint.
+     */
+    private static java.awt.Font findFontFor(int codepoint, int size) {
+        // Try common fallback fonts in order
+        var fallbacks = new String[]{
+            "SansSerif", "Serif", "Monospaced",
+            "Arial", "Helvetica", "DejaVu Sans", "Noto Sans",
+            "Lucida Sans", "Tahoma", "Verdana"
+        };
+        for (var name : fallbacks) {
+            var f = new java.awt.Font(name, java.awt.Font.BOLD, size);
+            if (f.canDisplay(codepoint)) return f;
+        }
+        // Last resort: search all available fonts
+        for (var f : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                 .getAllFonts()) {
+            if (f.canDisplay(codepoint)) {
+                return f.deriveFont(java.awt.Font.BOLD, size);
+            }
+        }
+        // Absolute fallback
+        return new java.awt.Font("SansSerif", java.awt.Font.BOLD, size);
     }
 
     /**
