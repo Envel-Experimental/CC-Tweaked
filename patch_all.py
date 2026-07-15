@@ -45,12 +45,18 @@ for cp in range(0x0400, 0x0500):
             
         cell = img.crop((c*cw, r*ch, c*cw+cw, r*ch+ch))
         idx = (cp - 0x0400) * 8
+        
+        # Only explicitly shift Й, й, Ё to match the alignment of И, и, Е
+        x_shift = 0
+        if cp in (0x419, 0x439, 0x401): # Й, й, Ё
+            x_shift = 1
+            
         for y in range(8):
             line = ''
             for x in range(6): # We only need the top-left 6x8 pixels
-                src_x = x
+                src_x = x - x_shift
                 src_y = y + y_offset
-                if src_x < cw and src_y < ch and src_y >= 0:
+                if 0 <= src_x < cw and 0 <= src_y < ch:
                     line += '#' if cell.getpixel((src_x, src_y))[3] > 128 else ' '
                 else:
                     line += ' '

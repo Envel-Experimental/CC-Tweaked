@@ -144,6 +144,8 @@ public final class CyrillicFontPatcher {
 
     // Pre-rendered Cyrillic glyphs from Minecraft
     // Pre-rendered Cyrillic glyphs from Minecraft
+    // Pre-rendered Cyrillic glyphs from Minecraft
+    // Pre-rendered Cyrillic glyphs from Minecraft
     public static final String[] CYRILLIC_GLYPHS = new String[256 * 8];
     static {
         CYRILLIC_GLYPHS[0] = "##### ";
@@ -154,13 +156,13 @@ public final class CyrillicFontPatcher {
         CYRILLIC_GLYPHS[5] = "#     ";
         CYRILLIC_GLYPHS[6] = "##### ";
         CYRILLIC_GLYPHS[7] = "      ";
-        CYRILLIC_GLYPHS[8] = "##### ";
-        CYRILLIC_GLYPHS[9] = "#     ";
-        CYRILLIC_GLYPHS[10] = "###   ";
-        CYRILLIC_GLYPHS[11] = "#     ";
-        CYRILLIC_GLYPHS[12] = "#     ";
-        CYRILLIC_GLYPHS[13] = "#     ";
-        CYRILLIC_GLYPHS[14] = "##### ";
+        CYRILLIC_GLYPHS[8] = " #####";
+        CYRILLIC_GLYPHS[9] = " #    ";
+        CYRILLIC_GLYPHS[10] = " ###  ";
+        CYRILLIC_GLYPHS[11] = " #    ";
+        CYRILLIC_GLYPHS[12] = " #    ";
+        CYRILLIC_GLYPHS[13] = " #    ";
+        CYRILLIC_GLYPHS[14] = " #####";
         CYRILLIC_GLYPHS[15] = "      ";
         CYRILLIC_GLYPHS[16] = "##### ";
         CYRILLIC_GLYPHS[17] = "  #   ";
@@ -346,13 +348,13 @@ public final class CyrillicFontPatcher {
         CYRILLIC_GLYPHS[197] = "#   # ";
         CYRILLIC_GLYPHS[198] = "#   # ";
         CYRILLIC_GLYPHS[199] = "      ";
-        CYRILLIC_GLYPHS[200] = "#   # ";
-        CYRILLIC_GLYPHS[201] = "#  ## ";
-        CYRILLIC_GLYPHS[202] = "# # # ";
-        CYRILLIC_GLYPHS[203] = "##  # ";
-        CYRILLIC_GLYPHS[204] = "#   # ";
-        CYRILLIC_GLYPHS[205] = "#   # ";
-        CYRILLIC_GLYPHS[206] = "#   # ";
+        CYRILLIC_GLYPHS[200] = " #   #";
+        CYRILLIC_GLYPHS[201] = " #  ##";
+        CYRILLIC_GLYPHS[202] = " # # #";
+        CYRILLIC_GLYPHS[203] = " ##  #";
+        CYRILLIC_GLYPHS[204] = " #   #";
+        CYRILLIC_GLYPHS[205] = " #   #";
+        CYRILLIC_GLYPHS[206] = " #   #";
         CYRILLIC_GLYPHS[207] = "      ";
         CYRILLIC_GLYPHS[208] = "#   # ";
         CYRILLIC_GLYPHS[209] = "#  #  ";
@@ -602,13 +604,13 @@ public final class CyrillicFontPatcher {
         CYRILLIC_GLYPHS[453] = "##  # ";
         CYRILLIC_GLYPHS[454] = "#   # ";
         CYRILLIC_GLYPHS[455] = "      ";
-        CYRILLIC_GLYPHS[456] = "  ##  ";
+        CYRILLIC_GLYPHS[456] = "   ## ";
         CYRILLIC_GLYPHS[457] = "      ";
-        CYRILLIC_GLYPHS[458] = "#   # ";
-        CYRILLIC_GLYPHS[459] = "#  ## ";
-        CYRILLIC_GLYPHS[460] = "# # # ";
-        CYRILLIC_GLYPHS[461] = "##  # ";
-        CYRILLIC_GLYPHS[462] = "#   # ";
+        CYRILLIC_GLYPHS[458] = " #   #";
+        CYRILLIC_GLYPHS[459] = " #  ##";
+        CYRILLIC_GLYPHS[460] = " # # #";
+        CYRILLIC_GLYPHS[461] = " ##  #";
+        CYRILLIC_GLYPHS[462] = " #   #";
         CYRILLIC_GLYPHS[463] = "      ";
         CYRILLIC_GLYPHS[464] = "      ";
         CYRILLIC_GLYPHS[465] = "      ";
