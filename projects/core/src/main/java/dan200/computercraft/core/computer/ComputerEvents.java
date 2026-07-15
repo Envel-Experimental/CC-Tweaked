@@ -5,8 +5,8 @@
 package dan200.computercraft.core.computer;
 
 import dan200.computercraft.core.util.StringUtil;
-import org.jspecify.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 
 /**
@@ -28,14 +28,11 @@ public final class ComputerEvents {
      * Type a character on the computer.
      *
      * @param receiver The computer to queue the event on.
-     * @param chr      The Unicode character to type (supports Cyrillic U+0400–U+04FF).
-     * @see StringUtil#isTypableChar(int)
+     * @param chr      The character to type.
+     * @see StringUtil#isTypableChar(byte)
      */
-    public static void charTyped(Receiver receiver, char chr) {
-        // Encode as UTF-8 so Lua receives a properly-encoded string.
-        // ASCII characters remain single-byte; Cyrillic becomes 2-byte UTF-8.
-        var bytes = String.valueOf(chr).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        receiver.queueEvent("char", new Object[]{ bytes });
+    public static void charTyped(Receiver receiver, byte chr) {
+        receiver.queueEvent("char", new Object[]{ new byte[]{ chr } });
     }
 
     /**
@@ -70,6 +67,6 @@ public final class ComputerEvents {
      */
     @FunctionalInterface
     public interface Receiver {
-        void queueEvent(String event, @Nullable Object @Nullable [] arguments);
+        void queueEvent(String event, @Nullable Object[] arguments);
     }
 }

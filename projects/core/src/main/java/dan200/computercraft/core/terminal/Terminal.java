@@ -5,8 +5,8 @@
 package dan200.computercraft.core.terminal;
 
 import dan200.computercraft.core.util.Colour;
-import org.jspecify.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 
 public class Terminal {
@@ -172,28 +172,6 @@ public class Terminal {
             this.text[y].write(text, x);
             this.textColour[y].write(textColour, x);
             this.backgroundColour[y].write(backgroundColour, x);
-            setChanged();
-        }
-    }
-
-    /**
-     * Write decoded text with per-cell colours at the current cursor position.
-     * Each char in {@code text} occupies exactly one terminal cell.
-     *
-     * @param text             Decoded Unicode text (BMP, one char per cell).
-     * @param textColour       Per-cell text colour indices (hex digit bytes).
-     * @param backgroundColour Per-cell background colour indices.
-     */
-    public synchronized void blit(String text, byte[] textColour, byte[] backgroundColour) {
-        var x = cursorX;
-        var y = cursorY;
-        if (y >= 0 && y < height) {
-            this.text[y].write(text, x);
-            var colourLen = Math.min(Math.min(text.length(), textColour.length), width - x);
-            for (var i = 0; i < colourLen; i++) {
-                this.textColour[y].setChar(x + i, (char) (textColour[i] & 0xFF));
-                this.backgroundColour[y].setChar(x + i, (char) (backgroundColour[i] & 0xFF));
-            }
             setChanged();
         }
     }
