@@ -144,6 +144,7 @@ local token_colours = {
     [tokens.STRING] = isColour and colours.red or textColour,
     [tokens.COMMENT] = isColour and colours.green or colours.lightGrey,
     [tokens.NUMBER] = isColour and colours.magenta or textColour,
+    [tokens.COMMA] = isColour and colours.lightBlue or textColour,
     -- Keywords
     [tokens.AND] = keywordColour,
     [tokens.BREAK] = keywordColour,
