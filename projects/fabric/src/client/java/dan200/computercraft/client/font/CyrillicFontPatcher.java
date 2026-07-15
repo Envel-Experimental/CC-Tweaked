@@ -1941,10 +1941,10 @@ public final class CyrillicFontPatcher {
             for (var dx = 0; dx < 6; dx++) {
                 if (line.charAt(dx) == '#') {
                     // White pixel
-                    atlas.setPixelRGBA(destX + dx, destY + dy + 1, 0xFFFFFFFF);
+                    atlas.setPixelRGBA(destX + dx, destY + dy, 0xFFFFFFFF);
                 } else {
                     // Transparent
-                    atlas.setPixelRGBA(destX + dx, destY + dy + 1, 0x00000000);
+                    atlas.setPixelRGBA(destX + dx, destY + dy, 0x00000000);
                 }
             }
         }
