@@ -170,13 +170,18 @@ public final class AiRequestHandler {
 
         if (lastResponse == null) lastResponse = "";
         
+        byte[] terminalBytes = new byte[lastResponse.length()];
+        for (int i = 0; i < lastResponse.length(); i++) {
+            terminalBytes[i] = dan200.computercraft.core.util.StringUtil.unicodeToTerminal(lastResponse.charAt(i));
+        }
+        
         if (validated) {
-            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse.getBytes(StandardCharsets.UTF_8));
+            env.queueEvent(AiAPI.EVENT_RESPONSE, id, terminalBytes);
         } else {
             // All retries exhausted — return last response with a warning event.
             LOG.warn("[AI] Request {} exhausted {} validation retries — returning unvalidated response.", id, maxRetries);
-            env.queueEvent("ai_response_unvalidated", id, lastResponse.getBytes(StandardCharsets.UTF_8));
-            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse.getBytes(StandardCharsets.UTF_8));
+            env.queueEvent("ai_response_unvalidated", id, terminalBytes);
+            env.queueEvent(AiAPI.EVENT_RESPONSE, id, terminalBytes);
         }
     }
 
