@@ -15,7 +15,6 @@ public class NetworkedTerminal extends Terminal {
      * 0x01 = legacy single-byte (Latin-1 only, codepoints 0-255).
      * 0x02 = UTF-16 BE text (codepoints 0-65535, enables Cyrillic).
      */
-    private static final byte VERSION_LEGACY = 0x01;
     private static final byte VERSION_UTF16  = 0x02;
 
     public NetworkedTerminal(int width, int height, boolean colour) {
@@ -75,9 +74,11 @@ public class NetworkedTerminal extends Terminal {
             return;
         }
 
-        var version = contents[idx++];
+        var expectedNew = 1 + width * height * 3 + Palette.PALETTE_SIZE * 3;
+        boolean isUtf16 = (contents.length == expectedNew && contents[0] == VERSION_UTF16);
 
-        if (version == VERSION_UTF16) {
+        if (isUtf16) {
+            idx++; // Consume version byte
             // New format: each text cell is 2 bytes (UTF-16 BE).
             for (var y = 0; y < height; y++) {
                 var text = this.text[y];
@@ -89,13 +90,9 @@ public class NetworkedTerminal extends Terminal {
             }
         } else {
             // Legacy format (VERSION_LEGACY = 0x01 or pre-versioned data): single byte per cell.
-            // Treat the version byte as first data byte and continue reading.
-            // First cell of row 0:
-            if (height > 0 && width > 0) this.text[0].setChar(0, (char) (version & 0xFF));
-            var startedAt = 1; // already consumed first byte
             for (var y = 0; y < height; y++) {
                 var text = this.text[y];
-                for (var x = (y == 0 ? 1 : 0); x < width; x++) {
+                for (var x = 0; x < width; x++) {
                     text.setChar(x, (char) (contents[idx++] & 0xFF));
                 }
             }

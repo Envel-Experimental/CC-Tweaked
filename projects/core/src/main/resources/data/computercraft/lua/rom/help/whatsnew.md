@@ -1,4 +1,4 @@
-New features in CC: Tweaked 1.116.1
+New features in CC: Tweaked 2.0.1
 
 * Update translations.
 

@@ -55,13 +55,7 @@ tasks.javadoc {
         )
 
         addBooleanOption("-allow-script-in-comments", true)
-        bottom(
-            """
-            <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.29.0/components/prism-core.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-            <link href=" https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css " rel="stylesheet">
-            """.trimIndent(),
-        )
+        bottom("<script src=\"https://cdn.jsdelivr.net/npm/prismjs@v1.29.0/components/prism-core.min.js\"></script><script src=\"https://cdn.jsdelivr.net/npm/prismjs@v1.29.0/plugins/autoloader/prism-autoloader.min.js\"></script><link href=\"https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css\" rel=\"stylesheet\">")
 
         taglets("cc.tweaked.javadoc.SnippetTaglet")
         tagletPath(configurations.detachedConfiguration(dependencies.project(":lints")).toList())

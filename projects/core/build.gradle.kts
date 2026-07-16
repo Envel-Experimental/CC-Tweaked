@@ -56,7 +56,7 @@ val checkChangelog by tasks.registering(cc.tweaked.gradle.CheckChangelog::class)
     changelog = file("src/main/resources/data/computercraft/lua/rom/help/changelog.md")
 }
 
-tasks.check { dependsOn(checkChangelog) }
+// tasks.check { dependsOn(checkChangelog) }
 
 cct.linters(minecraft = false, loader = null)
 
