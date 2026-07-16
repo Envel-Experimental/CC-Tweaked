@@ -365,7 +365,7 @@ local function redrawMenu()
 
     -- Draw line numbers
     local sLineInfo = "Ln " .. y .. "/" .. #tLines
-    term.setCursorPos(w - #sLineInfo + 1, h)
+    term.setCursorPos(w - #sLineInfo, h)
     term.setTextColour(highlightColour)
     term.write("Ln ")
     term.setTextColour(textColour)
