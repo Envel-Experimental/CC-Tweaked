@@ -2,9 +2,10 @@
 
 The `ai` API allows your ComputerCraft computers and turtles to communicate with an AI language model through a proxy server. This feature must be enabled and configured by the server administrator.
 
-To use the AI API, require it in your Lua program:
+To use the AI API, you can simply use the `ai` global variable in your Lua program:
 ```lua
-local ai = require("ai")
+-- No need to require("ai"), it's available globally!
+local reply, err = ai.ask("What is the capital of France?")
 ```
 
 ---

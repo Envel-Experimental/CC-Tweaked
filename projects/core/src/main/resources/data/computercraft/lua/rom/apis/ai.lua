@@ -5,8 +5,7 @@
 --
 -- ## Quick start
 -- ```lua
--- local ai = require("ai")
---
+-- -- The ai API is available globally.
 -- -- List models available on this server
 -- for _, m in ipairs(ai.models()) do
 --   print(m.id, "-", m.display_name, "(" .. m.max_context_tokens .. " tokens)")
@@ -45,6 +44,7 @@
 -- @module ai
 
 local _ai = ai  -- built-in Java API table
+local expect = require("cc.expect").expect
 
 --- Return the list of AI models available on this server.
 -- Each entry is a table: `{ id, display_name, max_context_tokens }`.
