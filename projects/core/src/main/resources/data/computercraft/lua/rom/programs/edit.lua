@@ -235,6 +235,53 @@ local function shallowEqual(x, y)
     return true
 end
 
+local function redrawScrollbar()
+    local visible_lines = h - 1
+    local total_lines = #tLines
+    
+    local oldBg = term.getBackgroundColour()
+    local oldText = term.getTextColour()
+
+    if total_lines <= visible_lines then
+        term.setBackgroundColour(bgColour)
+        term.setTextColour(textColour)
+        for i = 1, visible_lines do
+            local line_idx = scrollY + i
+            local line_text = tLines[line_idx]
+            if not line_text or #line_text - scrollX < w then
+                term.setCursorPos(w, i)
+                term.write(" ")
+            end
+        end
+        term.setBackgroundColour(oldBg)
+        term.setTextColour(oldText)
+        return
+    end
+
+    local trackColor = isColour and colours.grey or textColour
+    local thumbColor = isColour and colours.lightGrey or textColour
+
+    local max_scroll = total_lines - visible_lines
+    local thumb_size = math.max(1, math.floor(visible_lines * visible_lines / total_lines))
+    local thumb_pos = math.floor((scrollY / max_scroll) * (visible_lines - thumb_size))
+
+    term.setBackgroundColour(bgColour)
+
+    for i = 1, visible_lines do
+        term.setCursorPos(w, i)
+        if i > thumb_pos and i <= thumb_pos + thumb_size then
+            term.setTextColour(thumbColor)
+            term.write("\149")
+        else
+            term.setTextColour(trackColor)
+            term.write(isColour and "\149" or "\149")
+        end
+    end
+
+    term.setBackgroundColour(oldBg)
+    term.setTextColour(oldText)
+end
+
 local function redrawLines(line, endLine)
     if not endLine then endLine = line end
 
@@ -301,6 +348,8 @@ local function redrawLines(line, endLine)
         end
     end
 
+    redrawScrollbar()
+
     term.setTextColor(colours.white)
     term.setCursorPos(x - scrollX, y - scrollY)
 end
@@ -315,11 +364,12 @@ local function redrawMenu()
     term.clearLine()
 
     -- Draw line numbers
-    term.setCursorPos(w - #("Ln " .. y) + 1, h)
+    local sLineInfo = "Ln " .. y .. "/" .. #tLines
+    term.setCursorPos(w - #sLineInfo + 1, h)
     term.setTextColour(highlightColour)
     term.write("Ln ")
     term.setTextColour(textColour)
-    term.write(y)
+    term.write(y .. "/" .. #tLines)
 
     term.setCursorPos(1, h)
     if current_menu then
@@ -349,6 +399,7 @@ local tMenuFuncs = {
             end)
             if ok then
                 set_status("Saved to " .. sPath)
+                bChanged = false
             else
                 if fileerr then
                     set_status("Error saving: " .. fileerr, false)
@@ -532,6 +583,13 @@ local function acceptCompletion()
     end
 end
 
+local bChanged = false
+local autosaveTimer = os.startTimer(120)
+
+local function markChanged()
+    bChanged = true
+end
+
 local function handleMenuEvent(event)
     assert(current_menu)
 
@@ -592,11 +650,13 @@ while bRunning do
                 if nCompletion and x == #tLines[y] + 1 then
                     -- Accept autocomplete
                     acceptCompletion()
+                    markChanged()
                 else
                     -- Indent line
                     local sLine = tLines[y]
                     tLines[y] = string.sub(sLine, 1, x - 1) .. "    " .. string.sub(sLine, x)
                     setCursor(x + 4, y)
+                    markChanged()
                 end
 
             elseif key == keys.pageUp then
@@ -663,12 +723,14 @@ while bRunning do
                     tLines[y] = string.sub(sLine, 1, x - 1) .. string.sub(sLine, x + 1)
                     recomplete()
                     redrawLines(y)
+                    markChanged()
                 elseif y < #tLines then
                     tLines[y] = tLines[y] .. tLines[y + 1]
                     table.remove(tLines, y + 1)
                     table.remove(tLineLexStates, y + 1)
                     recomplete()
                     redrawText()
+                    markChanged()
                 end
 
             elseif key == keys.backspace and not bReadOnly then
@@ -682,6 +744,7 @@ while bRunning do
                         tLines[y] = string.sub(sLine, 1, x - 2) .. string.sub(sLine, x)
                         setCursor(x - 1, y)
                     end
+                    markChanged()
                 elseif y > 1 then
                     -- Remove newline
                     local sPrevLen = #tLines[y - 1]
@@ -690,6 +753,7 @@ while bRunning do
                     table.remove(tLineLexStates, y)
                     setCursor(sPrevLen + 1, y - 1)
                     redrawText()
+                    markChanged()
                 end
 
             elseif (key == keys.enter or key == keys.numPadEnter) and not bReadOnly then
@@ -704,6 +768,7 @@ while bRunning do
                 table.insert(tLineLexStates, y + 1, false)
                 setCursor(spaces + 1, y + 1)
                 redrawText()
+                markChanged()
 
             elseif key == keys.leftCtrl or key == keys.rightCtrl then
                 current_menu = menu.create(menu_items)
@@ -718,6 +783,7 @@ while bRunning do
             local sLine = tLines[y]
             tLines[y] = string.sub(sLine, 1, x - 1) .. event[2] .. string.sub(sLine, x)
             setCursor(x + 1, y)
+            markChanged()
         end
 
     elseif event[1] == "paste" and not bReadOnly then
@@ -732,13 +798,40 @@ while bRunning do
         local sLine = tLines[y]
         tLines[y] = string.sub(sLine, 1, x - 1) .. text .. string.sub(sLine, x)
         setCursor(x + #text, y)
+        markChanged()
 
-    elseif event[1] == "mouse_click" then
+    elseif event[1] == "mouse_click" or event[1] == "mouse_drag" then
         local button, cx, cy = event[2], event[3], event[4]
         if current_menu then
-            handleMenuEvent(event)
+            if event[1] == "mouse_click" then
+                handleMenuEvent(event)
+            end
         else
-            if button == 1 then
+            local bScrollbar = (cx == w and cy < h and #tLines > (h - 1))
+            if bScrollbar then
+                local visible_lines = h - 1
+                local total_lines = #tLines
+                local max_scroll = total_lines - visible_lines
+                local thumb_size = math.max(1, math.floor(visible_lines * visible_lines / total_lines))
+                
+                local target_pos = cy - math.floor(thumb_size / 2)
+                if target_pos < 1 then target_pos = 1 end
+                
+                local max_target = visible_lines - thumb_size
+                if max_target < 1 then max_target = 1 end
+                if target_pos > max_target then target_pos = max_target end
+                
+                local new_scroll = math.floor((target_pos - 1) * max_scroll / (max_target - 1) + 0.5)
+                if max_target == 1 then new_scroll = 0 end
+                
+                if new_scroll < 0 then new_scroll = 0 end
+                if new_scroll > max_scroll then new_scroll = max_scroll end
+                
+                if scrollY ~= new_scroll then
+                    scrollY = new_scroll
+                    redrawText()
+                end
+            elseif event[1] == "mouse_click" and button == 1 then
                 -- Left click
                 if cy < h then
                     local newY = math.min(math.max(scrollY + cy, 1), #tLines)
@@ -779,6 +872,17 @@ while bRunning do
         setCursor(x, y)
         redrawMenu()
         redrawText()
+
+    elseif event[1] == "timer" and event[2] == autosaveTimer then
+        autosaveTimer = os.startTimer(120)
+        if bChanged and not bReadOnly then
+            local sBakPath = sPath .. ".bak"
+            save(sBakPath, function(file)
+                for _, sLine in ipairs(tLines) do
+                    file.write(sLine .. "\n")
+                end
+            end)
+        end
 
     end
 end
