@@ -24,7 +24,7 @@ describe("The help library", function()
         end)
 
         it("completes topics without extensions", function()
-            expect(help.completeTopic("changel")):same { "og" }
+            expect(help.completeTopic("whatsn")):same { "ew" }
             expect(help.completeTopic("turt")):same { "le" }
         end)
     end)

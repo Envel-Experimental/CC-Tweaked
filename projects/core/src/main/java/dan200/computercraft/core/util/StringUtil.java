@@ -121,10 +121,10 @@ public final class StringUtil {
         var idx = 0;
 
         var iterator = clipboard.codePoints().iterator();
-        while (iterator.hasNext() && idx <= output.length) {
-            var chr = unicodeToTerminal(iterator.next());
-            if (!isTypableChar(chr)) break;
-            output[idx++] = chr;
+        while (iterator.hasNext() && idx < output.length) {
+            var cp = iterator.next();
+            if (!isTypableChar(cp)) break;
+            output[idx++] = unicodeToTerminal(cp);
         }
 
         return ByteBuffer.wrap(output, 0, idx).asReadOnlyBuffer();
