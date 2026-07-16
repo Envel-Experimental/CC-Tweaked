@@ -165,6 +165,7 @@ public abstract class AbstractHandle {
                         pos += length;
                     }
                     assert pos == totalRead;
+                    if (!binary) bytes = dan200.computercraft.core.util.StringUtil.transcodeUtf8ToTerminal(bytes);
                     return new Object[]{ bytes };
                 }
             }
@@ -198,7 +199,9 @@ public abstract class AbstractHandle {
 
                 stream.write(buf.array(), 0, r);
             }
-            return new Object[]{ stream.toByteArray() };
+            var bytes = stream.toByteArray();
+            if (!binary) bytes = dan200.computercraft.core.util.StringUtil.transcodeUtf8ToTerminal(bytes);
+            return new Object[]{ bytes };
         } catch (IOException e) {
             return null;
         }
@@ -228,7 +231,9 @@ public abstract class AbstractHandle {
                     // Nothing else to read, and we saw no \n. Return the array. If we saw a \r, then add it
                     // back.
                     if (readRc) stream.write('\r');
-                    return readAnything ? new Object[]{ stream.toByteArray() } : null;
+                    var bytes = stream.toByteArray();
+                    if (!binary) bytes = dan200.computercraft.core.util.StringUtil.transcodeUtf8ToTerminal(bytes);
+                    return readAnything ? new Object[]{ bytes } : null;
                 }
 
                 readAnything = true;
@@ -239,7 +244,9 @@ public abstract class AbstractHandle {
                         if (readRc) stream.write('\r');
                         stream.write(chr);
                     }
-                    return new Object[]{ stream.toByteArray() };
+                    var bytes = stream.toByteArray();
+                    if (!binary) bytes = dan200.computercraft.core.util.StringUtil.transcodeUtf8ToTerminal(bytes);
+                    return new Object[]{ bytes };
                 } else {
                     // We want to skip \r\n, but obviously need to include cases where \r is not followed by \n.
                     // Note, this behaviour is non-standard compliant (strictly speaking we should have no

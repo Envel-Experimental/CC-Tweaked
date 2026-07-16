@@ -116,6 +116,22 @@ public final class StringUtil {
      * @param clipboard The text from the clipboard.
      * @return The encoded clipboard text.
      */
+    public static byte[] transcodeUtf8ToTerminal(byte[] bytes) {
+        try {
+            var decoder = java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
+            var text = decoder.decode(ByteBuffer.wrap(bytes)).toString();
+            var out = new byte[text.length()];
+            for (var i = 0; i < text.length(); i++) {
+                out[i] = unicodeToTerminal(text.charAt(i));
+            }
+            return out;
+        } catch (java.nio.charset.CharacterCodingException e) {
+            return bytes;
+        }
+    }
+
     public static ByteBuffer getClipboardString(String clipboard) {
         var output = new byte[Math.min(MAX_PASTE_LENGTH, clipboard.length())];
         var idx = 0;
