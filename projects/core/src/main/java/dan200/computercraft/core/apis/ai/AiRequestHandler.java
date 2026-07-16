@@ -169,12 +169,12 @@ public final class AiRequestHandler {
         }
 
         if (validated) {
-            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse);
+            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse.getBytes(StandardCharsets.UTF_8));
         } else {
             // All retries exhausted — return last response with a warning event.
             LOG.warn("[AI] Request {} exhausted {} validation retries — returning unvalidated response.", id, maxRetries);
-            env.queueEvent("ai_response_unvalidated", id, lastResponse);
-            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse);
+            env.queueEvent("ai_response_unvalidated", id, lastResponse.getBytes(StandardCharsets.UTF_8));
+            env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse.getBytes(StandardCharsets.UTF_8));
         }
     }
 
