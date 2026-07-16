@@ -44,7 +44,7 @@
 -- @module ai
 
 local _ai = ai  -- built-in Java API table
-local expect = require("cc.expect").expect
+local expect = dofile("rom/modules/main/cc/expect.lua").expect
 
 --- Return the list of AI models available on this server.
 -- Each entry is a table: `{ id, display_name, max_context_tokens }`.
