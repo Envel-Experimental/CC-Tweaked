@@ -168,6 +168,8 @@ public final class AiRequestHandler {
             LOG.info("[AI] Request {} attempt {}/{} failed validation — retrying.", id, attempt, maxRetries);
         }
 
+        if (lastResponse == null) lastResponse = "";
+        
         if (validated) {
             env.queueEvent(AiAPI.EVENT_RESPONSE, id, lastResponse.getBytes(StandardCharsets.UTF_8));
         } else {
