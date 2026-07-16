@@ -34,6 +34,32 @@ conv:say("How do I make the turtle move forward?")
 print(conv:reply())
 ```
 
+### Interactive Terminal Chat
+A simple program that lets you chat with the AI in a loop:
+```lua
+local conv = ai.conversation()
+print("Chat with AI started! Type 'exit' to quit.")
+
+while true do
+    write("> ")
+    local text = read()
+    if text == "exit" then break end
+
+    conv:say(text)
+    local reply, err = conv:reply()
+    
+    if reply then
+        term.setTextColor(colors.lightBlue)
+        print(reply)
+        term.setTextColor(colors.white)
+    else
+        term.setTextColor(colors.red)
+        print("Error: " .. err)
+        term.setTextColor(colors.white)
+    end
+end
+```
+
 ### Async Requests
 Send a request without blocking your program:
 ```lua
