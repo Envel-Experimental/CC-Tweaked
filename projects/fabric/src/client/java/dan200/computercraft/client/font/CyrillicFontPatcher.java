@@ -9,9 +9,9 @@ import dan200.computercraft.client.render.text.FixedWidthFontRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jspecify.annotations.Nullable;
 
 
 /**
@@ -135,7 +135,7 @@ public final class CyrillicFontPatcher {
         // Rasterise Cyrillic glyphs into the right half (columns 16-31).
         // 256 Cyrillic characters will map to slots 256-511.
         for (var cp = CYRILLIC_START; cp <= CYRILLIC_END; cp++) {
-            var slotIndex = cp - CYRILLIC_START + 256; 
+            var slotIndex = cp - CYRILLIC_START + 256;
             renderGlyph(atlas, mcFont, cp, slotIndex);
         }
 

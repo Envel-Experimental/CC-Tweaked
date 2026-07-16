@@ -390,7 +390,7 @@ public final class ConfigSpec {
             monitorWidth = builder.comment("Maximum width of monitors").defineInRange("width", Config.monitorWidth, 1, 32);
             monitorHeight = builder.comment("Maximum height of monitors").defineInRange("height", Config.monitorHeight, 1, 32);
             builder.pop(); // monitor
-            
+
             builder.pop(); // term_sizes
         }
 

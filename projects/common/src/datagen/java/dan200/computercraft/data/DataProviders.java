@@ -65,6 +65,7 @@ public final class DataProviders {
                 GuiSprites.TURNED_OFF.textures(),
                 GuiSprites.TURNED_ON.textures(),
                 GuiSprites.TERMINATE.textures(),
+                GuiSprites.AI_HINT.textures(),
                 // Computers
                 GuiSprites.COMPUTER_NORMAL.textures(),
                 GuiSprites.COMPUTER_ADVANCED.textures(),

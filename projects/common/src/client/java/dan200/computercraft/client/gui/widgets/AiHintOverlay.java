@@ -14,10 +14,10 @@ import net.minecraft.network.chat.Component;
  * Overlay widget that displays AI explanations for Lua errors.
  */
 public class AiHintOverlay extends AbstractWidget {
-    private String hintText = "Loading hint from AI...";
+    private String hintText = net.minecraft.client.resources.language.I18n.get("gui.computercraft.tooltip.ai_hint_loading");
 
     public AiHintOverlay(int x, int y, int width, int height) {
-        super(x, y, width, height, Component.literal("AI Hint"));
+        super(x, y, width, height, Component.translatable("gui.computercraft.tooltip.ai_hint_overlay"));
     }
 
     public void setHintText(String hintText) {
@@ -40,11 +40,18 @@ public class AiHintOverlay extends AbstractWidget {
     }
 
     @Override
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        return visible; // Intercept all clicks when visible
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // If clicked outside, close the overlay
-        if (!isMouseOver(mouseX, mouseY)) {
+        // Check if clicked inside the visual box
+        boolean insideX = mouseX >= getX() && mouseX < getX() + getWidth();
+        boolean insideY = mouseY >= getY() && mouseY < getY() + getHeight();
+        if (!insideX || !insideY) {
             this.visible = false;
-            return false;
+            return true; // Consume the click so it doesn't leak to the terminal
         }
         return true;
     }

@@ -102,13 +102,18 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
             btnX, btnY, 12, 12,
             GuiSprites.AI_HINT::get,
             b -> requestAiHint(),
-            new DynamicImageButton.HintedMessage(Component.literal("Ask AI about this error"), (net.minecraft.network.chat.Component) null)
+            new DynamicImageButton.HintedMessage(Component.translatable("gui.computercraft.tooltip.ai_hint"), (net.minecraft.network.chat.Component) null)
         );
         aiHintButton.visible = false;
         addRenderableWidget(aiHintButton);
 
-        // Add the overlay centered
-        aiHintOverlay = new AiHintOverlay(leftPos + 25, topPos + 25, terminal.getWidth() - 25, terminal.getHeight() - 25);
+        // Add the overlay centered over the terminal
+        aiHintOverlay = new AiHintOverlay(
+            terminal.getX() + 10,
+            terminal.getY() + 10,
+            terminal.getWidth() * dan200.computercraft.client.render.text.FixedWidthFontRenderer.FONT_WIDTH - 20,
+            terminal.getHeight() * dan200.computercraft.client.render.text.FixedWidthFontRenderer.FONT_HEIGHT - 20
+        );
         aiHintOverlay.visible = false;
         addRenderableWidget(aiHintOverlay);
 
@@ -139,7 +144,7 @@ public abstract class AbstractComputerScreen<T extends AbstractComputerMenu> ext
 
         if (terminal != null && aiHintButton != null && aiHintOverlay != null) {
             var currentError = terminal.getCurrentError();
-            aiHintButton.visible = currentError != null;
+            aiHintButton.visible = currentError != null && dan200.computercraft.core.AiConfig.enabled && dan200.computercraft.core.AiConfig.errorHintEnabled;
             if (currentError == null) {
                 aiHintOverlay.visible = false;
                 lastRequestedError = null;

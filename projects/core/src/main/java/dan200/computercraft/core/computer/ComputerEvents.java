@@ -5,8 +5,8 @@
 package dan200.computercraft.core.computer;
 
 import dan200.computercraft.core.util.StringUtil;
-
 import org.jspecify.annotations.Nullable;
+
 import java.nio.ByteBuffer;
 
 /**

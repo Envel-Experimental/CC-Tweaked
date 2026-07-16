@@ -206,6 +206,9 @@ public final class LanguageProvider implements DataProvider {
         add("gui.computercraft.tooltip.turn_on", "Turn this computer on");
         add("gui.computercraft.tooltip.turn_off", "Turn this computer off");
         add("gui.computercraft.tooltip.turn_off.key", "Hold Ctrl+S");
+        add("gui.computercraft.tooltip.ai_hint", "Ask AI about this error");
+        add("gui.computercraft.tooltip.ai_hint_loading", "Loading hint from AI...");
+        add("gui.computercraft.tooltip.ai_hint_overlay", "AI Hint Overlay");
         add("gui.computercraft.tooltip.terminate", "Stop the currently running code");
         add("gui.computercraft.tooltip.terminate.key", "Hold Ctrl+T");
         add("gui.computercraft.upload.failed", "Upload Failed");
