@@ -49,6 +49,20 @@ public final class DirectFixedWidthFontRenderer {
         // Short circuit to avoid the common case - the texture should be blank here after all.
         if (index == '\0' || index == ' ') return;
 
+        // Map CP1251 bytes back to Cyrillic Unicode
+        if (index >= 192 && index <= 255) {
+            index = index - 192 + 0x0410;
+        } else if (index == 168) {
+            index = 0x0401;
+        } else if (index == 184) {
+            index = 0x0451;
+        }
+
+        // Map Cyrillic characters (U+0400 to U+04FF) to 256..511
+        if (index >= 0x0400 && index <= 0x04FF) {
+            index = index - 0x0400 + 256;
+        }
+
         // Latin is 0..255 (cols 0..15). Cyrillic is 256..511 (cols 16..31).
         var column = (index < 256) ? (index % 16) : (16 + (index % 16));
         var row = (index < 256) ? (index / 16) : ((index - 256) / 16);
