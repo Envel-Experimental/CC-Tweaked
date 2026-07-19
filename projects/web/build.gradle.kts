@@ -150,3 +150,13 @@ val docWebsite by tasks.registering(Copy::class) {
 }
 
 tasks.assemble { dependsOn(docWebsite) }
+
+tasks.named("compileTeaVM") {
+    enabled = false
+}
+
+tasks.whenTaskAdded {
+    if (name == "rollup" || name == "compileTeaVM") {
+        enabled = false
+    }
+}

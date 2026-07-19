@@ -169,12 +169,12 @@ public final class AiRequestHandler {
         }
 
         if (lastResponse == null) lastResponse = "";
-        
+
         byte[] terminalBytes = new byte[lastResponse.length()];
         for (int i = 0; i < lastResponse.length(); i++) {
             terminalBytes[i] = dan200.computercraft.core.util.StringUtil.unicodeToTerminal(lastResponse.charAt(i));
         }
-        
+
         if (validated) {
             env.queueEvent(AiAPI.EVENT_RESPONSE, id, terminalBytes);
         } else {

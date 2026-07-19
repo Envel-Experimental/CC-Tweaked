@@ -122,7 +122,12 @@ public class THttpRequest extends Resource<THttpRequest> {
         var reader = new ReadHandle(contents, binary);
 
         Map<String, String> responseHeaders = new HashMap<>();
-        for (var header : request.getAllResponseHeaders().split("\r\n")) {
+        String rawHeaders = request.getAllResponseHeaders();
+        int start = 0;
+        while (rawHeaders != null && start < rawHeaders.length()) {
+            int end = rawHeaders.indexOf("\r\n", start);
+            String header = end < 0 ? rawHeaders.substring(start) : rawHeaders.substring(start, end);
+            start = end < 0 ? rawHeaders.length() : end + 2;
             var index = header.indexOf(':');
             if (index < 0) continue;
 
